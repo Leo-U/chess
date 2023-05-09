@@ -47,13 +47,16 @@ class Board
     end
   end
 
-  def print_board
+  def print_board(rank = 9, letters = ('  a'..'  h'))
+    print ' ', *letters, "\n"
     @board.each do |row|
+      print rank -= 1, ' ' 
       row.each do |entry|
         print entry
       end
-      puts ''
+      print ' ', rank, "\n"
     end
+    print ' ', *letters, "\n"
   end
 
 
