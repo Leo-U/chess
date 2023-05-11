@@ -33,7 +33,7 @@ class Board
   end
   
   def build_back_rank(color, rank)
-    home = [:R, :N, :P, :Q, :K, :B, :N, :R]
+    home = [:R, :N, :B, :Q, :K, :B, :N, :R]
     i = 0
     @board[rank].each do |square|
       square[-6] = color[home[i]]
@@ -59,7 +59,17 @@ class Board
     print ' ', *letters, "\n"
   end
 
+  def complete_starting_position
+    build_empty_board
+    build_back_rank(@black, 0)
+    build_back_rank(@red, 7)
+    build_second_rank(black, 1)
+    build_second_rank(red, 6)
+  end
+end
 
+# Converts user input to 
+module Interface
 end
 
 class Piece
@@ -77,10 +87,5 @@ end
 # puts 'a b c d e f g h'
 
 board = Board.new
-board.build_empty_board
-board.board[0][0][-6] = board.black[:K]
-board.build_back_rank(board.black, 0)
-board.build_back_rank(board.red, 7)
-board.build_second_rank(board.black, 1)
-board.build_second_rank(board.red, 6)
+board.complete_starting_position
 board.print_board
