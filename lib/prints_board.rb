@@ -69,7 +69,7 @@ class Board
 end
 
 class Piece
-  # contains legal move logic -- an is_legal? method -- takes coord arg & returns true or false
+  # contains legal move logic -- an is_legal? method that takes coord arg & returns true or false
   # has color attribute
   # instantiates anywhere on the board.
 end
