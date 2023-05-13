@@ -25,6 +25,21 @@ class Piece
     @piece_name = piece_name
     @color = color
   end
+
+  def position(state)
+    state.each do |row|
+      if row.include? self
+        return state.index(row), row.index(self)
+      end
+    end
+  end
+end
+
+class Knight
+  def initialize(piece_name, color)
+    @piece_name = piece_name
+    @color = color
+  end
 end
 
 
@@ -32,3 +47,4 @@ end
 board = Board.new
 board.add_first_rank(0, 'black')
 pp board.state
+p board.state[0][1].return_position(board.state)
