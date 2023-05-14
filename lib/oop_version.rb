@@ -10,6 +10,7 @@ class Board
     @state[x][y] = piece
   end
 
+  # delete or refactor
   def add_first_rank(rank, color)
     pieces = ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
     @state[rank].each_index do |i|
@@ -25,26 +26,44 @@ class Piece
     @piece_name = piece_name
     @color = color
   end
-
-  def position(state)
-    state.each do |row|
-      if row.include? self
-        return state.index(row), row.index(self)
-      end
-    end
-  end
 end
 
 class Knight
+  attr_reader :position, :destination
   def initialize(piece_name, color)
     @piece_name = piece_name
     @color = color
+    @destination = []
+    @position = []
+  end
+
+  def set_position(state)
+    state.each do |row|
+      if row.include? self
+        @position = state.index(row), row.index(self)
+      end
+    end
+  end
+
+  def set_destination(x, y)
+    @destination = [x, y]
+  end
+
+  def legal_move?
+    diff1 = (@position[0] - @destination[0]).abs
+    diff2 = (@position[1] - @destination[1]).abs
+    [diff1, diff2].sort == [1, 2] && destination.none? { |n| n < 0 }
   end
 end
 
 
 
 board = Board.new
-board.add_first_rank(0, 'black')
+#board.add_first_rank(0, 'black')
+board.add_piece(Knight.new('knight', 'black'), 0, 0)
 pp board.state
-p board.state[0][1].return_position(board.state)
+board.state[0][0].set_position(board.state)
+p board.state[0][0].position
+board.state[0][0].set_destination(1, 2)
+p board.state[0][0].destination
+p board.state[0][0].legal_move?
