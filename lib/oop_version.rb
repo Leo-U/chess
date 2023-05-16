@@ -6,7 +6,7 @@ class Board
     @state =  8.times.map { 8.times.map { nil } }
   end
 
-  def add_piece(piece, x, y)
+  def add_piece(piece, y, x)
     @state[x][y] = piece
   end
 
@@ -45,8 +45,8 @@ class Knight
     end
   end
 
-  def set_destination(x, y)
-    @destination = [x, y]
+  def set_destination(y, x)
+    @destination = [y, x]
   end
 
   def legal_move?
