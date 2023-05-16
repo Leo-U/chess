@@ -24,10 +24,35 @@ describe Knight do
           expect(legal_knight.legal_move?).to be true
         end
       end
+
+      context 'when destination is 2 left and 1 down' do
+        it 'returns false' do
+          legal_knight.set_destination(1, -2)
+          expect(legal_knight.legal_move?).to be false
+        end
+      end
+
+      context 'when destination is 1 left and 2 down' do
+        it 'returns false' do
+          legal_knight.set_destination(2, -1)
+          expect(legal_knight.legal_move?).to be false
+        end
+      end
     end
 
+    context 'when knight is at 4, 2' do
+      before do
+        state[4][2] = legal_knight
+        legal_knight.set_position(state)
+      end
 
-
-    #context 'when knight is '
+      context 'when destination is 1 left and 2 down' do
+        it 'returns true' do
+          legal_knight.set_destination(6, 1)
+          pp state
+          expect(legal_knight.legal_move?).to be true
+        end
+      end
+    end
   end
 end
