@@ -8,6 +8,7 @@ class Board
 
   def add_piece(piece, y, x)
     @state[x][y] = piece
+    @state[y][x].set_position(@state)
   end
 
   # delete or refactor
@@ -15,6 +16,15 @@ class Board
     pieces = ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
     @state[rank].each_index do |i|
       add_piece(Piece.new(pieces[i], 'black'), rank, i)
+    end
+  end
+
+  def make_move(origin_y, origin_x, dest_y, dest_x)
+    piece = @state[origin_y][origin_x]
+    piece.set_destination(dest_y, dest_x)
+    if piece.legal_move?
+      @state[dest_y][dest_x] = piece
+      @state[origin_y][origin_x] = nil
     end
   end
 
@@ -54,6 +64,7 @@ class Knight
     diff2 = (@position[1] - @destination[1]).abs
     [diff1, diff2].sort == [1, 2] && destination.none? { |n| n < 0 }
   end
+
 end
 
 
@@ -62,7 +73,7 @@ board = Board.new
 #board.add_first_rank(0, 'black')
 board.add_piece(Knight.new('knight', 'black'), 0, 0)
 pp board.state
-board.state[0][0].set_position(board.state)
+#board.state[0][0].set_position(board.state)
 p board.state[0][0].position
 board.state[0][0].set_destination(1, 2)
 p board.state[0][0].destination
