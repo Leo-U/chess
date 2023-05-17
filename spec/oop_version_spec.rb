@@ -53,6 +53,13 @@ describe Knight do
           expect(legal_knight.legal_move?).to be true
         end
       end
+
+      context 'when destination is 1 left and 2 up' do
+        it 'returns true' do
+          legal_knight.set_destination(2, 1)
+          expect(legal_knight.legal_move?).to be true
+        end
+      end
     end
   end
 end
