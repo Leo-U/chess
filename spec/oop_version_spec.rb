@@ -61,5 +61,20 @@ describe Knight do
         end
       end
     end
+
+    context 'when knight is at 2, 7' do
+      before do
+        state[2][7] = legal_knight
+        legal_knight.set_position(state)
+      end
+
+      context 'when destination is 1 right and 2 down' do
+        it 'returns false' do
+          legal_knight.set_destination(4, 8)
+          pp state
+          expect(legal_knight.legal_move?).to be false
+        end
+      end
+    end
   end
 end
