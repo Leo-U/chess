@@ -32,14 +32,7 @@ end
 
 
 class Piece
-  def initialize(piece_name, color)
-    @piece_name = piece_name
-    @color = color
-  end
-end
-
-class Knight
-  attr_reader :position, :destination
+  attr_reader :position, :destination, :piece_name
   def initialize(piece_name, color)
     @piece_name = piece_name
     @color = color
@@ -58,23 +51,33 @@ class Knight
   def set_destination(y, x)
     @destination = [y, x]
   end
+end
 
+class Knight < Piece
   def legal_move?
     diff1 = (@position[0] - @destination[0]).abs
     diff2 = (@position[1] - @destination[1]).abs
-    [diff1, diff2].sort == [1, 2] && destination.none? { |n| n < 0 }
+    [diff1, diff2].sort == [1, 2] && @destination.all? { |n| n.between?(0, 7)}
   end
+end
 
+def shitty_print_board(board)
+  board.state.each do |row|
+    row.each do |entry|
+      print entry.nil? ? "nil, " : "#{entry.piece_name}, "
+    end
+    puts "\n"
+  end
 end
 
 
 
 board = Board.new
-#board.add_first_rank(0, 'black')
-board.add_piece(Knight.new('knight', 'black'), 0, 0)
-pp board.state
-#board.state[0][0].set_position(board.state)
-p board.state[0][0].position
-board.state[0][0].set_destination(1, 2)
-p board.state[0][0].destination
-p board.state[0][0].legal_move?
+
+board.add_piece(Knight.new('NGT', 'black'), 0, 0)
+puts 'before move:'
+shitty_print_board(board)
+board.make_move(0, 0, 1, 2)
+puts 'after move:'
+shitty_print_board(board)
+
