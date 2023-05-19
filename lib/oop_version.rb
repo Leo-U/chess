@@ -7,7 +7,7 @@ class Board
   end
 
   def add_piece(piece, y, x)
-    @state[x][y] = piece
+    @state[y][x] = piece
     @state[y][x].set_position(@state)
   end
 
@@ -51,13 +51,28 @@ class Piece
   def set_destination(y, x)
     @destination = [y, x]
   end
+
+  def set_diffs
+    @diff1 = (@position[0] - @destination[0]).abs
+    @diff2 = (@position[1] - @destination[1]).abs
+  end
+
+  def in_bounds?
+    @destination.all? { |n| n.between?(0, 7)}
+  end
 end
 
 class Knight < Piece
   def legal_move?
-    diff1 = (@position[0] - @destination[0]).abs
-    diff2 = (@position[1] - @destination[1]).abs
-    [diff1, diff2].sort == [1, 2] && @destination.all? { |n| n.between?(0, 7)}
+    set_diffs
+    [@diff1, @diff2].sort == [1, 2] && in_bounds?
+  end
+end
+
+class Bishop < Piece
+  def legal_move?
+    set_diffs
+    @diff1 == @diff2 && in_bounds?
   end
 end
 
@@ -74,10 +89,13 @@ end
 
 board = Board.new
 
-board.add_piece(Knight.new('NGT', 'black'), 0, 0)
+board.add_piece(Bishop.new('Bsh', 'black'), 0, 7)
 puts 'before move:'
 shitty_print_board(board)
-board.make_move(0, 0, 1, 2)
+board.make_move(0, 7, 2, 5)
 puts 'after move:'
 shitty_print_board(board)
+
+
+
 
