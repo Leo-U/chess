@@ -28,22 +28,27 @@ class Board
     end
   end
 
+  def friendly_at?(origin_y, origin_x, dest_y, dest_x)
+    origin_piece = @state[origin_y][origin_x]
+    dest_piece = @state[dest_y][dest_x]
+    dest_piece != nil && origin_piece.color == dest_piece.color
+  end
 end
 
 
 class Piece
-  attr_reader :position, :destination, :piece_name
+  attr_reader :origin, :destination, :piece_name, :color
   def initialize(piece_name, color)
     @piece_name = piece_name
     @color = color
     @destination = []
-    @position = []
+    @origin = []
   end
 
   def set_position(state)
     state.each do |row|
       if row.include? self
-        @position = state.index(row), row.index(self)
+        @origin = state.index(row), row.index(self)
       end
     end
   end
@@ -53,26 +58,46 @@ class Piece
   end
 
   def set_diffs
-    @diff1 = (@position[0] - @destination[0]).abs
-    @diff2 = (@position[1] - @destination[1]).abs
+    @diff1 = (@origin[0] - @destination[0]).abs
+    @diff2 = (@origin[1] - @destination[1]).abs
   end
 
-  def in_bounds?
+  def destination_in_bounds?
     @destination.all? { |n| n.between?(0, 7)}
   end
+
+  def no_friendly_at_dest?(board)
+    !board.friendly_at?(@origin[0], @origin[1], @destination[0], @destination[1])
+  end
+
+  
 end
 
 class Knight < Piece
-  def legal_move?
+  def legal_move?(board)
     set_diffs
-    [@diff1, @diff2].sort == [1, 2] && in_bounds?
+    [@diff1, @diff2].sort == [1, 2] && destination_in_bounds? && no_friendly_at_dest?(board)
   end
 end
 
 class Bishop < Piece
-  def legal_move?
+  def legal_move?(board)
     set_diffs
-    @diff1 == @diff2 && in_bounds?
+    @diff1 == @diff2 && destination_in_bounds? && no_friendly_at_dest?(board)
+  end
+end
+
+class Rook < Piece
+  def legal_move?(board)
+    set_diffs
+    (@diff1.zero? || @diff2.zero?) && no_friendly_at_dest?(board) && destination_in_bounds?
+  end
+end
+
+class Queen < Piece
+  def legal_move?(board)
+    set_diffs
+    (@diff1 == @diff2 && destination_in_bounds? && no_friendly_at_dest?(board)) || (@diff1.zero? || @diff2.zero?) && no_friendly_at_dest?(board) && destination_in_bounds?
   end
 end
 
@@ -84,18 +109,4 @@ def shitty_print_board(board)
     puts "\n"
   end
 end
-
-
-
-board = Board.new
-
-board.add_piece(Bishop.new('Bsh', 'black'), 0, 7)
-puts 'before move:'
-shitty_print_board(board)
-board.make_move(0, 7, 2, 5)
-puts 'after move:'
-shitty_print_board(board)
-
-
-
 
