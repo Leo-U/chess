@@ -33,6 +33,29 @@ class Board
     dest_piece = @state[dest_y][dest_x]
     dest_piece != nil && origin_piece.color == dest_piece.color
   end
+
+  def direction_clear?(origin, destination, y_inc, x_inc)
+    path = []
+    loop do
+      origin[0] += y_inc
+      origin[1] += x_inc
+      break if origin[0] == destination[0]
+      path << @state[origin[0]][origin[1]].nil?
+    end
+    path.all?
+  end
+
+  def diagonal_clear?(origin, destination)
+    if destination[0] > origin[0] && destination[1] > origin[1]
+      direction_clear?(origin, destination, 1, 1)
+    elsif destination[0] > origin[0] && destination[1] < origin[1]
+      direction_clear?(origin, destination, 1, -1)
+    elsif destination[0] < origin[0] && destination[1] < origin[1]
+      direction_clear?(origin, destination, -1, -1)
+    elsif destination[0] < origin[0] && destination[1] > origin[1]
+      direction_clear?(origin, destination, -1, 1)
+    end
+  end
 end
 
 
@@ -70,7 +93,9 @@ class Piece
     !board.friendly_at?(@origin[0], @origin[1], @destination[0], @destination[1])
   end
 
-  
+  def diagonal_clear?(board)
+    board.diagonal_clear?(@origin, @destination)
+  end
 end
 
 class Knight < Piece
