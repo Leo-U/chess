@@ -287,6 +287,12 @@ describe Bishop do
             expect(between_bishop.diagonal_clear?(board)).to be false
           end
         end
+
+        context 'when the way is clear' do
+          it 'returns true' do
+            expect(between_bishop.diagonal_clear?(board)).to be true
+          end
+        end
       end
     end
   end
