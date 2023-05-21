@@ -39,22 +39,27 @@ class Board
     loop do
       origin[0] += y_inc
       origin[1] += x_inc
-      break if origin[0] == destination[0]
+      break if origin == destination
       path << @state[origin[0]][origin[1]].nil?
     end
     path.all?
   end
 
   def diagonal_clear?(origin, destination)
-    if destination[0] > origin[0] && destination[1] > origin[1]
-      direction_clear?(origin, destination, 1, 1)
-    elsif destination[0] > origin[0] && destination[1] < origin[1]
-      direction_clear?(origin, destination, 1, -1)
-    elsif destination[0] < origin[0] && destination[1] < origin[1]
-      direction_clear?(origin, destination, -1, -1)
-    elsif destination[0] < origin[0] && destination[1] > origin[1]
-      direction_clear?(origin, destination, -1, 1)
+    destination[0] > origin[0] ? inc_y = 1 : inc_y = -1
+    destination[1] > origin[1] ? inc_x = 1 : inc_x = -1
+    direction_clear?(origin, destination, inc_y, inc_x)
+  end
+
+  def horizontal_clear?(origin, destination)
+    if destination[0] != origin[0]
+      inc_x = 0
+      inc_y = destination[0] > origin[0] ? 1 : -1
+    else
+      inc_y = 0
+      inc_x = destination[1] > origin[1] ? 1 : -1
     end
+    direction_clear?(origin, destination, inc_y, inc_x)
   end
 end
 
@@ -85,8 +90,8 @@ class Piece
     @diff2 = (@origin[1] - @destination[1]).abs
   end
 
-  def destination_in_bounds?
-    @destination.all? { |n| n.between?(0, 7)}
+  def in_bounds?
+    @destination.all? { |n| n.between?(0, 7) }
   end
 
   def no_friendly_at_dest?(board)
@@ -96,33 +101,50 @@ class Piece
   def diagonal_clear?(board)
     board.diagonal_clear?(@origin, @destination)
   end
+
+  def horizontal_clear?(board)
+    board.horizontal_clear?(@origin, @destination)
+  end
+
 end
 
 class Knight < Piece
   def legal_move?(board)
     set_diffs
-    [@diff1, @diff2].sort == [1, 2] && destination_in_bounds? && no_friendly_at_dest?(board)
+    [@diff1, @diff2].sort == [1, 2] && in_bounds? && no_friendly_at_dest?(board)
   end
 end
 
 class Bishop < Piece
   def legal_move?(board)
     set_diffs
-    @diff1 == @diff2 && destination_in_bounds? && no_friendly_at_dest?(board)
+    @diff1 == @diff2 && in_bounds? && no_friendly_at_dest?(board) && diagonal_clear?(board)
   end
 end
 
 class Rook < Piece
   def legal_move?(board)
     set_diffs
-    (@diff1.zero? || @diff2.zero?) && no_friendly_at_dest?(board) && destination_in_bounds?
+    (@diff1.zero? || @diff2.zero?) && no_friendly_at_dest?(board) && in_bounds? && horizontal_clear?(board)
   end
 end
 
 class Queen < Piece
+  def queen_path_clear?(board)
+    @destination[0] == @origin[0] || @destination[1] == @origin[1] ? horizontal_clear?(board) : diagonal_clear?(board)
+  end
+
   def legal_move?(board)
     set_diffs
-    (@diff1 == @diff2 && destination_in_bounds? && no_friendly_at_dest?(board)) || (@diff1.zero? || @diff2.zero?) && no_friendly_at_dest?(board) && destination_in_bounds?
+    no_friendly_at_dest?(board) && in_bounds? && queen_path_clear?(board) && (@diff1 == @diff2 || (@diff1.zero? || @diff2.zero?))
+  end
+
+end
+w
+class King < Piece
+  def legal_move?(board)
+    set_diffs
+    no_friendly_at_dest?(board) && in_bounds? && @diff1.between?(0, 1) && @diff2.between?(0, 1)
   end
 end
 
@@ -134,4 +156,3 @@ def shitty_print_board(board)
     puts "\n"
   end
 end
-
