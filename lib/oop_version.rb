@@ -28,10 +28,14 @@ class Board
     end
   end
 
-  def friendly_at?(origin_y, origin_x, dest_y, dest_x)
+  def piece_at?(origin_y, origin_x, dest_y, dest_x, side)
     origin_piece = @state[origin_y][origin_x]
     dest_piece = @state[dest_y][dest_x]
-    dest_piece != nil && origin_piece.color == dest_piece.color
+    if side == 'friendly'
+      dest_piece != nil && origin_piece.color == dest_piece.color
+    else
+      dest_piece != nil && origin_piece.color != dest_piece.color
+    end
   end
 
   def direction_clear?(origin, destination, y_inc, x_inc)
@@ -39,7 +43,7 @@ class Board
     loop do
       origin[0] += y_inc
       origin[1] += x_inc
-      break if origin == destination
+      break if origin == destination || !origin[0].between?(0, 7) || !origin[1].between?(0, 7)
       path << @state[origin[0]][origin[1]].nil?
     end
     path.all?
@@ -60,6 +64,15 @@ class Board
       inc_x = destination[1] > origin[1] ? 1 : -1
     end
     direction_clear?(origin, destination, inc_y, inc_x)
+  end
+
+  def square_safe?(king)
+    opponent_pieces = @state.flatten.select { |el| el.is_a?(Piece) && el.color != king.color }
+    opponent_pieces.each do |piece|
+      piece.set_position(@state)
+      piece.set_destination(king.destination[0], king.destination[1])
+    end
+    opponent_pieces.none? { |piece| piece.instance_of?(Pawn) ? piece.square_attackable? : piece.legal_move?(self) }
   end
 end
 
@@ -95,7 +108,7 @@ class Piece
   end
 
   def no_friendly_at_dest?(board)
-    !board.friendly_at?(@origin[0], @origin[1], @destination[0], @destination[1])
+    !board.piece_at?(@origin[0], @origin[1], @destination[0], @destination[1], 'friendly')
   end
 
   def diagonal_clear?(board)
@@ -138,13 +151,57 @@ class Queen < Piece
     set_diffs
     no_friendly_at_dest?(board) && in_bounds? && queen_path_clear?(board) && (@diff1 == @diff2 || (@diff1.zero? || @diff2.zero?))
   end
-
 end
-w
+
 class King < Piece
+  def dest_safe?(board)
+    board.square_safe?(self)
+  end
+
   def legal_move?(board)
     set_diffs
-    no_friendly_at_dest?(board) && in_bounds? && @diff1.between?(0, 1) && @diff2.between?(0, 1)
+    no_friendly_at_dest?(board) && in_bounds? && @diff1.between?(0, 1) && @diff2.between?(0, 1) && dest_safe?(board)
+  end
+end
+
+class Pawn < Piece
+  def at_starting_square?
+    @color == 'white' ? @origin[0] == 6 : @origin[0] == 1
+  end
+
+  def set_direction
+    @one_step = @color == 'white' ? -1 : 1
+    @two_step = @color == 'white' ? -2 : 2
+  end
+
+  def square_attackable?
+    set_diffs
+    if @color == 'black'
+      @destination[0] == @origin[0] + 1 && @diff2 == 1
+    elsif @color == 'white'
+      @destination[0] == @origin[0] - 1 && @diff2 == 1
+    end
+  end
+
+  def enemy_at_attackable?(board)
+    square_attackable? && board.piece_at?(@origin[0], @origin[1], @destination[0], @destination[1], 'opponent')
+  end
+
+  def x_in_bounds?(board)
+    @destination[1] == @origin[1]
+  end
+
+  def one_or_two_steps?(board)
+    @destination[0] == @origin[0] + @one_step || (at_starting_square? && @destination[0] == @origin[0] + @two_step && horizontal_clear?(board))
+  end
+
+  def no_opponent_in_front?(board)
+    !board.piece_at?(@origin[0], @origin[1], @destination[0], @destination[1], 'opponent')
+  end
+
+  def legal_move?(board)
+    set_direction
+    in_bounds? && no_opponent_in_front?(board) && no_friendly_at_dest?(board) && one_or_two_steps?(board) && x_in_bounds?(board) || enemy_at_attackable?(board)
   end
 end
 
