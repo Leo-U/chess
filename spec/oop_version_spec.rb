@@ -171,7 +171,6 @@ describe Bishop do
         context 'when way is blocked' do
           it 'returns false' do
             board.state[6][2] = described_class.new('bsp2', 'white')
-            shitty_print_board(board)
             legal_bishop.set_destination(5, 1)
             expect(legal_bishop.legal_move?(board)).to be false
           end
@@ -240,7 +239,6 @@ describe Bishop do
         context 'when a piece is blocking' do
           it 'returns false' do
             board.state[4][4] = Bishop.new('bp2', 'black')
-            shitty_print_board(board)
             expect(between_bishop.diagonal_clear?(board)).to be false
           end
         end
@@ -258,7 +256,6 @@ describe Bishop do
         context 'when a piece is blocking' do
           it 'returns false' do
             board.state[4][2] = Bishop.new('bp2', 'black')
-            shitty_print_board(board)
             expect(between_bishop.diagonal_clear?(board)).to be false
           end
         end
@@ -276,7 +273,6 @@ describe Bishop do
         context 'when a piece is blocking' do
           it 'returns false' do
             board.state[1][1] = Bishop.new('bp2', 'black')
-            shitty_print_board(board)
             expect(between_bishop.diagonal_clear?(board)).to be false
           end
         end
@@ -294,7 +290,6 @@ describe Bishop do
         context 'when a piece is blocking' do
           it 'returns false' do
             board.state[2][4] = Bishop.new('bp2', 'black')
-            shitty_print_board(board)
             expect(between_bishop.diagonal_clear?(board)).to be false
           end
         end
@@ -353,7 +348,6 @@ describe Rook do
         context 'when path is blocked' do
           it 'returns false' do
             board.state[3][0] = described_class.new('rk2', 'black')
-            shitty_print_board(board)
             expect(legal_rook.legal_move?(board)).to be false
           end
         end
@@ -379,7 +373,6 @@ describe Rook do
           board.state[2][0] = described_class.new('rk2', 'white')
           legal_rook.set_destination(2, 0)
           expect(legal_rook.legal_move?(board)).to be true
-          shitty_print_board(board)
         end
       end
     end
@@ -407,7 +400,6 @@ describe Rook do
         context 'when way is blocked' do
           it 'returns false' do
             board.state[6][3] = described_class.new('rk2', 'white')
-            shitty_print_board(board)
             expect(between_rook.horizontal_clear?(board)).to be false
           end
         end
@@ -425,7 +417,6 @@ describe Rook do
         context 'when way is blocked' do
           it 'returns false' do
             board.state[1][3] = described_class.new('rk2', 'white')
-            shitty_print_board(board)
             expect(between_rook.horizontal_clear?(board)).to be false
           end
         end
@@ -443,7 +434,6 @@ describe Rook do
         context 'when way is blocked' do
           it 'returns false' do
             board.state[3][5] = described_class.new('rk2', 'black')
-            shitty_print_board(board)
             expect(between_rook.horizontal_clear?(board)).to be false
           end
         end
@@ -461,7 +451,6 @@ describe Rook do
         context 'when way is blocked' do
           it 'returns false' do
             board.state[3][2] = described_class.new('rk2', 'black')
-            shitty_print_board(board)
             expect(between_rook.horizontal_clear?(board)).to be false
           end
         end
@@ -487,7 +476,6 @@ describe Queen do
 
         context 'when path is clear' do
           it 'returns true' do
-            shitty_print_board(board)
             expect(legal_queen.legal_move?(board)).to be true
           end          
         end
@@ -495,7 +483,6 @@ describe Queen do
         context 'when path is blocked' do
           it 'returns false' do
             board.state[2][2] = Rook.new('rk1', 'white')
-            shitty_print_board(board)
             expect(legal_queen.legal_move?(board)).to be false
           end
         end
@@ -503,7 +490,6 @@ describe Queen do
         context 'when destination is occupied by friendly piece' do
           it 'returns false' do
             board.state[1][1] = Rook.new('rk1', 'black')
-            shitty_print_board(board)
             expect(legal_queen.legal_move?(board)).to be false
           end
         end
@@ -521,7 +507,6 @@ describe Queen do
 
         context 'when path is clear' do
           it 'returns true' do
-            shitty_print_board(board)
             expect(legal_queen.legal_move?(board)).to be true
           end
         end
@@ -529,7 +514,6 @@ describe Queen do
         context 'when path is blocked' do
           it 'returns false' do
             board.state[5][1] = Knight.new('knt', 'black')
-            shitty_print_board(board)
             expect(legal_queen.legal_move?(board)).to be false
           end
         end
@@ -537,7 +521,6 @@ describe Queen do
         context 'when destination is occupied by friendly piece' do
           it 'returns false' do
             board.state[6][0] = Bishop.new('bp1', 'black')
-            shitty_print_board(board)
             expect(legal_queen.legal_move?(board)).to be false
           end
         end
@@ -548,7 +531,6 @@ describe Queen do
 
         context 'when path is clear' do
           it 'returns true' do
-            shitty_print_board(board)
             expect(legal_queen.legal_move?(board)).to be true
           end
         end
@@ -556,7 +538,6 @@ describe Queen do
         context 'when path is blocked' do
           it 'returns false' do
             board.state[5][5] = described_class.new('qn2', 'white')
-            shitty_print_board(board)
             expect(legal_queen.legal_move?(board)).to be false
           end
         end
@@ -567,7 +548,6 @@ describe Queen do
 
         context 'when path is clear' do
           it 'returns true' do
-            shitty_print_board(board)
             expect(legal_queen.legal_move?(board)).to be true
           end
         end
@@ -575,7 +555,6 @@ describe Queen do
         context 'when path is blocked' do
           it 'returns false' do
             board.state[2][4] = Knight.new('nt1', 'white')
-            shitty_print_board(board)
             expect(legal_queen.legal_move?(board)).to be false
           end
         end
@@ -583,7 +562,6 @@ describe Queen do
         context 'when destination is occupied by friendly piece' do
           it 'returns false' do
             board.state[0][6] = Knight.new('nt1', 'black')
-            shitty_print_board(board)
             expect(legal_queen.legal_move?(board)).to be false
           end
         end
@@ -591,7 +569,6 @@ describe Queen do
         context 'when destination is occupied by opponent piece' do
           it 'returns true' do
             board.state[0][6] = Knight.new('nt1', 'white')
-            shitty_print_board(board)
             expect(legal_queen.legal_move?(board)).to be true
           end
         end
@@ -602,7 +579,6 @@ describe Queen do
 
         context 'when path is clear' do
           it 'returns true' do
-            shitty_print_board(board)
             expect(legal_queen.legal_move?(board)).to be true
           end
         end
@@ -610,7 +586,6 @@ describe Queen do
         context 'when path is blocked' do
           it 'returns false' do
             board.state[5][3] = Rook.new('rk1', 'black')
-            shitty_print_board(board)
             expect(legal_queen.legal_move?(board)).to be false
           end
         end
@@ -635,7 +610,6 @@ describe King do
 
         context 'when destination square is empty' do
           it 'returns true' do
-            shitty_print_board board
             expect(legal_king.legal_move?(board)).to be true
           end
         end
@@ -643,16 +617,8 @@ describe King do
         context 'when destination square is occupied by friendly piece' do
           it 'returns false' do
             board.state[4][4] = Knight.new('ngt', 'black')
-            shitty_print_board board
             expect(legal_king.legal_move?(board)).to be false
           end
-        end
-      end
-
-      context 'when destination is 3, 4' do
-        it 'returns true' do
-          legal_king.set_destination(3, 4)
-          expect(legal_king.legal_move?(board)).to be true
         end
       end
 
@@ -662,13 +628,190 @@ describe King do
           expect(legal_king.legal_move?(board)).to be false
         end
       end
+      
       context 'when destination is origin' do
         it 'returns false' do
           legal_king.set_destination(3, 3)
           expect(legal_king.legal_move?(board)).to be false
         end
-      end      
+      end
+      
+      context 'when destination is 3, 4' do
+        before { legal_king.set_destination(3, 4) }
+
+        context 'when unobstructed' do
+          it 'returns true' do
+            expect(legal_king.legal_move?(board)).to be true
+          end
+        end
+
+        context 'when destination threatened by bishop' do
+          it 'returns false' do
+            board.state[0][7] = Bishop.new('bsp', 'white')
+            expect(legal_king.legal_move?(board)).to be false
+          end
+        end
+
+        context 'when destination threatened by knight' do
+          it 'returns false' do
+            board.state[1][5] = Knight.new('knt', 'white')
+            expect(legal_king.legal_move?(board)).to be false
+          end
+        end
+
+        context 'when destination threatened by rook' do
+          it 'returns false' do
+            board.state[0][4] = Rook.new('rk1', 'white')
+            expect(legal_king.legal_move?(board)).to be false
+          end
+        end
+
+        context 'when destination horizontally threatened by queen' do
+          it 'returns false' do
+            board.state[7][4] = Queen.new('qn1', 'white')
+            expect(legal_king.legal_move?(board)).to be false
+          end
+        end
+
+        context 'when destination is not threatened by queen' do
+          it 'returns false' do
+            board.state[7][7] = Queen.new('qn1', 'white')
+            expect(legal_king.legal_move?(board)).to be true
+          end
+        end
+
+        context 'when destination diagonally threatened by queen' do
+          it 'returns false' do
+            board.state[6][7] = Queen.new('qn1', 'white')
+            expect(legal_king.legal_move?(board)).to be false
+          end
+        end
+
+        context 'when destination threatened by pawn' do
+          it 'returns false' do
+            board.state[4][5] = Pawn.new('pn1', 'white')
+            shitty_print_board board
+            expect(legal_king.legal_move?(board)).to be false
+          end
+        end
+      end
+    end
+  end
+end
+
+describe Pawn do
+  let(:board) { Board.new }
+
+  context 'when black pawn is at 1, 4' do
+    subject(:legal_pawn_black) { described_class.new('pwn', 'black') }
+
+    before do
+      board.state[1][4] = legal_pawn_black
+      legal_pawn_black.set_position(board.state)
     end
 
+    context 'when destination is 2, 4' do
+      before { legal_pawn_black.set_destination(2, 4) }
+
+      context 'when square is empty' do
+        it 'returns true' do
+          expect(legal_pawn_black.legal_move?(board)).to be true
+        end
+      end
+
+      context 'when square is occupied by friendly' do
+        it 'returns false' do
+          board.state[2][4] = Knight.new('kn1', 'black')
+          expect(legal_pawn_black.legal_move?(board)).to be false
+        end
+      end
+
+      context 'when square is occupied by opponent' do
+        it 'returns false' do
+          board.state[2][4] = Bishop.new('bp1', 'white')
+          expect(legal_pawn_black.legal_move?(board)).to be false
+        end
+      end
+    end
+
+    context 'when destination is 3, 4 (two steps foward)' do
+      before { legal_pawn_black.set_destination(3, 4) }
+
+      context 'when path is clear' do
+        it 'returns true' do
+          expect(legal_pawn_black.legal_move?(board)).to be true
+        end        
+      end
+
+      context 'when path is blocked' do
+        it 'returns false' do
+          board.state[2][4] = described_class.new('pn2', 'black')
+          expect(legal_pawn_black.legal_move?(board)).to be false
+        end
+      end
+    end
+
+    context 'when destination is 0, 4 (backwards)' do
+      it 'returns false' do
+        legal_pawn_black.set_destination(0, 4)
+        expect(legal_pawn_black.legal_move?(board)).to be false
+      end
+    end
+
+    context 'when destination is 2, 5' do
+      before { legal_pawn_black.set_destination(2, 5) }
+
+      context 'when NO enemy piece at 2, 5' do
+        it 'returns false' do
+          expect(legal_pawn_black.legal_move?(board)).to be false
+        end
+      end
+
+      context 'when enemy piece IS at 2, 5' do
+        it 'returns true' do
+          board.state[2][5] = Queen.new('Qn1', 'white')
+          expect(legal_pawn_black.legal_move?(board)).to be true
+        end
+      end
+
+      context 'when friendly piece is at 2, 5' do
+        it 'returns false' do
+          board.state[2][5] = Queen.new('Rk1', 'black')
+          expect(legal_pawn_black.legal_move?(board)).to be false
+        end
+      end
+    end
+
+    context 'when destination is '
+  end
+
+  context 'when white pawn is at 6, 3' do
+    subject(:legal_pawn_white) { described_class.new('pwn', 'white') }
+
+    before do
+      board.state[6][3] = legal_pawn_white
+      legal_pawn_white.set_position(board.state)
+    end
+
+    context 'when destination is 5, 3' do
+      it 'returns true' do
+        legal_pawn_white.set_destination(5, 3)
+        expect(legal_pawn_white.legal_move?(board)).to be true
+      end
+    end
+
+    context 'when destination is 4, 3 (two steps foward)' do
+      it 'returns true' do
+        legal_pawn_white.set_destination(4, 3)
+        expect(legal_pawn_white.legal_move?(board)).to be true
+      end
+    end
+
+    context 'when destination is 7, 3 (backwards)' do
+      it 'returns false' do
+        legal_pawn_white.set_destination(7, 3)
+        expect(legal_pawn_white.legal_move?(board)).to be false
+      end
+    end
   end
 end
