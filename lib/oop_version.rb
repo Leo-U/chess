@@ -11,40 +11,66 @@ class Board
     @state[y][x].set_position(@state)
   end
 
-  # delete or refactor
-  def add_first_rank(rank, color)
-    pieces = ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
+  def create_piece(name, color)
+    label = color == 'black' ? name.downcase : name
+    Object.const_get(name).new(label.slice(0, 3), color)
+  end
+
+  def add_home_rank(rank, color)
+    pieces = ['Rook', 'Knight', 'Bishop', 'Queen', 'King', 'Bishop', 'Knight', 'Rook']
     @state[rank].each_index do |i|
-      add_piece(Piece.new(pieces[i], 'black'), rank, i)
+      add_piece(create_piece(pieces[i], color), rank, i)
+    end
+  end
+
+  def add_pawn_rank(rank, color)
+    @state[rank].each_index do |i|
+      add_piece(create_piece('Pawn', color), rank, i)
+    end
+  end
+
+  def setup_board
+    add_home_rank(0, 'black')
+    add_pawn_rank(1, 'black')
+    add_pawn_rank(6, 'white')
+    add_home_rank(7, 'white')
+  end
+
+  def unset_moved_each
+    @state.each do |row|
+      row.each do |el|
+        el.unset_moved if el.instance_of?(Pawn)
+      end
     end
   end
 
   def make_move(origin_y, origin_x, dest_y, dest_x)
     piece = @state[origin_y][origin_x]
     piece.set_destination(dest_y, dest_x)
-    if piece.legal_move?
+    if piece.legal_move?(self)
       @state[dest_y][dest_x] = piece
       @state[origin_y][origin_x] = nil
     end
+    piece.set_position(@state)
+    unset_moved_each
+    piece.set_moved if piece.instance_of?(Pawn) && (origin_y - dest_y).abs == 2
+    # but wait, what if each player moves their pawn two squares forward, one after the other? I think then, @moved_two would still be `true` for both.
+    # therefore, I have included `unset_moved each` on line 56.
   end
 
-  def piece_at?(origin_y, origin_x, dest_y, dest_x, side)
-    origin_piece = @state[origin_y][origin_x]
+  def piece_at?(color, dest_y, dest_x, side)
+    # origin_piece = @state[origin_y][origin_x]
     dest_piece = @state[dest_y][dest_x]
-    if side == 'friendly'
-      dest_piece != nil && origin_piece.color == dest_piece.color
-    else
-      dest_piece != nil && origin_piece.color != dest_piece.color
-    end
+    dest_piece != nil && (side == 'friendly' ? color == dest_piece.color : color != dest_piece.color)
   end
 
-  def direction_clear?(origin, destination, y_inc, x_inc)
+  def direction_clear?(origin, destination, y_inc, x_inc, y = origin[0], x = origin[1])
     path = []
     loop do
-      origin[0] += y_inc
-      origin[1] += x_inc
-      break if origin == destination || !origin[0].between?(0, 7) || !origin[1].between?(0, 7)
-      path << @state[origin[0]][origin[1]].nil?
+      y += y_inc
+      x += x_inc
+      break if [y, x] == destination || !y.between?(0, 7) || !x.between?(0, 7)
+      path << @state[y][x].nil?
     end
     path.all?
   end
@@ -108,7 +134,7 @@ class Piece
   end
 
   def no_friendly_at_dest?(board)
-    !board.piece_at?(@origin[0], @origin[1], @destination[0], @destination[1], 'friendly')
+    !board.piece_at?(@color, @destination[0], @destination[1], 'friendly')
   end
 
   def diagonal_clear?(board)
@@ -165,26 +191,37 @@ class King < Piece
 end
 
 class Pawn < Piece
+  attr_reader :moved_two
   def at_starting_square?
     @color == 'white' ? @origin[0] == 6 : @origin[0] == 1
   end
 
-  def set_direction
-    @one_step = @color == 'white' ? -1 : 1
-    @two_step = @color == 'white' ? -2 : 2
+  def set_direction(c = @color == 'white')
+    @one_step = c ? -1 : 1
+    @two_step = c ? -2 : 2
+  end
+
+  def set_moved
+    @moved_two = true
+  end
+
+  def unset_moved
+    @moved_two = false
   end
 
   def square_attackable?
     set_diffs
-    if @color == 'black'
-      @destination[0] == @origin[0] + 1 && @diff2 == 1
-    elsif @color == 'white'
-      @destination[0] == @origin[0] - 1 && @diff2 == 1
-    end
+    dir = @color == 'black' ? 1 : -1
+    @destination[0] == @origin[0] + dir && @diff2 == 1
+  end
+
+  # could this inadvertently allow bad en passant on opposite side?
+  def en_passant_possible?(board)
+    board.piece_at?(@color, @origin[0], @origin[1] - 1, 'opponent') || board.piece_at?(@color, @origin[0], @origin[1] + 1, 'opponent')
   end
 
   def enemy_at_attackable?(board)
-    square_attackable? && board.piece_at?(@origin[0], @origin[1], @destination[0], @destination[1], 'opponent')
+    square_attackable? && board.piece_at?(@color, @destination[0], @destination[1], 'opponent')
   end
 
   def x_in_bounds?(board)
@@ -196,7 +233,7 @@ class Pawn < Piece
   end
 
   def no_opponent_in_front?(board)
-    !board.piece_at?(@origin[0], @origin[1], @destination[0], @destination[1], 'opponent')
+    !board.piece_at?(@color, @destination[0], @destination[1], 'opponent')
   end
 
   def legal_move?(board)
@@ -205,7 +242,7 @@ class Pawn < Piece
   end
 end
 
-def shitty_print_board(board)
+def basic_print(board)
   board.state.each do |row|
     row.each do |entry|
       print entry.nil? ? "nil, " : "#{entry.piece_name}, "
@@ -213,3 +250,23 @@ def shitty_print_board(board)
     puts "\n"
   end
 end
+
+board = Board.new
+board.setup_board
+basic_print board
+puts ''
+board.make_move(6, 4, 4, 4)
+basic_print board
+
+board.make_move(7, 6, 5, 5)
+puts ''
+basic_print board
+puts ''
+board.make_move(1, 4, 3, 4)
+basic_print board
+puts ''
+
+p board.state[3][4].origin
+p board.state[4][4].origin
+p board.state[3][4].origin
+p board.state[5][5].origin
