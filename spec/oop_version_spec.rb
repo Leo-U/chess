@@ -687,10 +687,16 @@ describe King do
           end
         end
 
-        context 'when destination threatened by pawn' do
+        context 'when destination threatened by pawn at 4, 5' do
           it 'returns false' do
             board.state[4][5] = Pawn.new('pn1', 'white')
-            shitty_print_board board
+            expect(legal_king.legal_move?(board)).to be false
+          end
+        end
+
+        context 'when destination threatened by pawn at 4, 3' do
+          it 'returns false' do
+            board.state[4][3] = Pawn.new('pn1', 'white')
             expect(legal_king.legal_move?(board)).to be false
           end
         end
@@ -702,87 +708,104 @@ end
 describe Pawn do
   let(:board) { Board.new }
 
-  context 'when black pawn is at 1, 4' do
-    subject(:legal_pawn_black) { described_class.new('pwn', 'black') }
+  describe '#legal_move' do
+    context 'when black pawn is at 1, 4' do
+      subject(:legal_pawn_black) { described_class.new('pwn', 'black') }
 
-    before do
-      board.state[1][4] = legal_pawn_black
-      legal_pawn_black.set_position(board.state)
-    end
+      before do
+        board.state[1][4] = legal_pawn_black
+        legal_pawn_black.set_position(board.state)
+      end
 
-    context 'when destination is 2, 4' do
-      before { legal_pawn_black.set_destination(2, 4) }
+      context 'when destination is 2, 4' do
+        before { legal_pawn_black.set_destination(2, 4) }
 
-      context 'when square is empty' do
+        context 'when square is empty' do
+          it 'returns true' do
+            expect(legal_pawn_black.legal_move?(board)).to be true
+          end
+        end
+
+        context 'when square is occupied by friendly' do
+          it 'returns false' do
+            board.state[2][4] = Knight.new('kn1', 'black')
+            expect(legal_pawn_black.legal_move?(board)).to be false
+          end
+        end
+
+        context 'when square is occupied by opponent' do
+          it 'returns false' do
+            board.state[2][4] = Bishop.new('bp1', 'white')
+            expect(legal_pawn_black.legal_move?(board)).to be false
+          end
+        end
+      end
+
+      context 'when destination is 3, 4 (two steps foward)' do
+        before { legal_pawn_black.set_destination(3, 4) }
+
+        context 'when path is clear' do
+          it 'returns true' do
+            expect(legal_pawn_black.legal_move?(board)).to be true
+          end        
+        end
+
+        context 'when path is blocked' do
+          it 'returns false' do
+            board.state[2][4] = described_class.new('pn2', 'black')
+            expect(legal_pawn_black.legal_move?(board)).to be false
+          end
+        end
+      end
+
+      context 'when destination is 0, 4 (backwards)' do
+        it 'returns false' do
+          legal_pawn_black.set_destination(0, 4)
+          expect(legal_pawn_black.legal_move?(board)).to be false
+        end
+      end
+
+      context 'when destination is 2, 5' do
+        before { legal_pawn_black.set_destination(2, 5) }
+
+        context 'when NO enemy piece at 2, 5' do
+          it 'returns false' do
+            expect(legal_pawn_black.legal_move?(board)).to be false
+          end
+        end
+
+        context 'when enemy piece IS at 2, 5' do
+          it 'returns true' do
+            board.state[2][5] = Queen.new('Qn1', 'white')
+            expect(legal_pawn_black.legal_move?(board)).to be true
+          end
+        end
+
+        context 'when friendly piece is at 2, 5' do
+          it 'returns false' do
+            board.state[2][5] = Queen.new('Rk1', 'black')
+            expect(legal_pawn_black.legal_move?(board)).to be false
+          end
+        end
+      end
+
+      context 'when it moves 2 forward next to white pawn' do
         it 'returns true' do
-          expect(legal_pawn_black.legal_move?(board)).to be true
+          white_pawn = described_class.new('Pwn', 'white')
+          board.state[3][5] = white_pawn
+          white_pawn.set_position(board.state)
+          basic_print board
+          puts ''
+          board.make_move(1, 4, 3, 4)
+          basic_print board
+          white_pawn.set_destination(2, 4)
+          # expect(white_pawn.legal_move?(board)).to be true
+          puts white_pawn.en_passant_possible?(board)
+          p board.state[3][4].moved_two
         end
-      end
-
-      context 'when square is occupied by friendly' do
-        it 'returns false' do
-          board.state[2][4] = Knight.new('kn1', 'black')
-          expect(legal_pawn_black.legal_move?(board)).to be false
-        end
-      end
-
-      context 'when square is occupied by opponent' do
-        it 'returns false' do
-          board.state[2][4] = Bishop.new('bp1', 'white')
-          expect(legal_pawn_black.legal_move?(board)).to be false
-        end
-      end
-    end
-
-    context 'when destination is 3, 4 (two steps foward)' do
-      before { legal_pawn_black.set_destination(3, 4) }
-
-      context 'when path is clear' do
-        it 'returns true' do
-          expect(legal_pawn_black.legal_move?(board)).to be true
-        end        
-      end
-
-      context 'when path is blocked' do
-        it 'returns false' do
-          board.state[2][4] = described_class.new('pn2', 'black')
-          expect(legal_pawn_black.legal_move?(board)).to be false
-        end
-      end
-    end
-
-    context 'when destination is 0, 4 (backwards)' do
-      it 'returns false' do
-        legal_pawn_black.set_destination(0, 4)
-        expect(legal_pawn_black.legal_move?(board)).to be false
-      end
-    end
-
-    context 'when destination is 2, 5' do
-      before { legal_pawn_black.set_destination(2, 5) }
-
-      context 'when NO enemy piece at 2, 5' do
-        it 'returns false' do
-          expect(legal_pawn_black.legal_move?(board)).to be false
-        end
-      end
-
-      context 'when enemy piece IS at 2, 5' do
-        it 'returns true' do
-          board.state[2][5] = Queen.new('Qn1', 'white')
-          expect(legal_pawn_black.legal_move?(board)).to be true
-        end
-      end
-
-      context 'when friendly piece is at 2, 5' do
-        it 'returns false' do
-          board.state[2][5] = Queen.new('Rk1', 'black')
-          expect(legal_pawn_black.legal_move?(board)).to be false
-        end
-      end
-    end
-
-    context 'when destination is '
+      end    
+  end
+  
   end
 
   context 'when white pawn is at 6, 3' do
@@ -811,6 +834,21 @@ describe Pawn do
       it 'returns false' do
         legal_pawn_white.set_destination(7, 3)
         expect(legal_pawn_white.legal_move?(board)).to be false
+      end
+    end
+  end
+
+end
+
+describe Board do
+  let(:board) { Board.new }
+
+  describe '#unset_moved_each' do
+    context 'when a pawn has @moved_two == true' do
+      it 'gets set to false' do
+        board.setup_board
+        board.state[1][0].set_moved
+        expect { board.unset_moved_each }.to change { board.state[1][0].moved_two }.to(false)
       end
     end
   end
