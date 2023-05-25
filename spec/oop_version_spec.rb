@@ -822,51 +822,78 @@ describe Pawn do
           expect(white_pawn.legal_move?(board)).to be true
         end
       end
-  end
-  
-  end
-
-  context 'when white pawn is at 6, 3' do
-    subject(:legal_pawn_white) { described_class.new('pwn', 'white') }
-
-    before do
-      board.state[6][3] = legal_pawn_white
-      legal_pawn_white.set_position(board.state)
     end
 
-    context 'when destination is 5, 3' do
-      it 'returns true' do
-        legal_pawn_white.set_destination(5, 3)
-        expect(legal_pawn_white.legal_move?(board)).to be true
+    context 'when white pawn is at 6, 3' do
+      subject(:legal_pawn_white) { described_class.new('pwn', 'white') }
+
+      before do
+        board.state[6][3] = legal_pawn_white
+        legal_pawn_white.set_position(board.state)
+      end
+
+      context 'when destination is 5, 3' do
+        it 'returns true' do
+          legal_pawn_white.set_destination(5, 3)
+          expect(legal_pawn_white.legal_move?(board)).to be true
+        end
+      end
+
+      context 'when destination is 4, 3 (two steps foward)' do
+        it 'returns true' do
+          legal_pawn_white.set_destination(4, 3)
+          expect(legal_pawn_white.legal_move?(board)).to be true
+        end
+      end
+
+      context 'when destination is 7, 3 (backwards)' do
+        it 'returns false' do
+          legal_pawn_white.set_destination(7, 3)
+          expect(legal_pawn_white.legal_move?(board)).to be false
+        end
+      end
+    end
+  end
+
+  describe '#promote' do
+    subject(:white_pawn) { described_class.new('Paw', 'white') }
+    subject(:black_pawn) { described_class.new('paw', 'black') }
+
+    context 'when white pawn arrives at rank 0' do
+      it 'pawn is promoted to specified piece' do
+        board.state[0][3] = white_pawn
+        white_pawn.set_position(board.state)
+        allow(white_pawn).to receive(:gets).and_return('qUeEn')
+        y = white_pawn.origin[0]
+        x = white_pawn.origin[1]
+        white_pawn.promote(board)
+        expect(board.state[y][x].instance_of?(Queen)).to be true
       end
     end
 
-    context 'when destination is 4, 3 (two steps foward)' do
-      it 'returns true' do
-        legal_pawn_white.set_destination(4, 3)
-        expect(legal_pawn_white.legal_move?(board)).to be true
-      end
-    end
-
-    context 'when destination is 7, 3 (backwards)' do
-      it 'returns false' do
-        legal_pawn_white.set_destination(7, 3)
-        expect(legal_pawn_white.legal_move?(board)).to be false
+    context 'when black pawn arrives at rank 7' do
+      it 'pawn is promoted to specified piece' do
+        board.state[7][0] = black_pawn
+        black_pawn.set_position(board.state)
+        allow(black_pawn).to receive(:gets).and_return('rook')
+        y = black_pawn.origin[0]
+        x = black_pawn.origin[1]
+        black_pawn.promote(board)
+        expect(board.state[y][x].instance_of?(Rook)).to be true
       end
     end
   end
-
 end
 
 describe Board do
   let(:board) { Board.new }
 
-  describe '#reset_state' do
+  describe '#reset_piece_state' do
     context 'when a pawn has @moved_two == true' do
       it 'gets set to false' do
         board.setup_board
         board.state[1][0].set_moved_two
-        expect { board.reset_state(board.state[1][0]) }.to change { board.state[1][0].moved_two }.to(false)
+        expect { board.reset_piece_state(board.state[1][0]) }.to change { board.state[1][0].moved_two }.to(false)
       end
     end
   end
