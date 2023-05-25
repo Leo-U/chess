@@ -1,9 +1,8 @@
-# Make Board, but initialize Piece instances in the 2d array.
-
 class Board
-  attr_reader :state
+  attr_reader :state, :pieces
   def initialize
     @state =  8.times.map { 8.times.map { nil } }
+    @pieces = ['Rook', 'Knight', 'Bishop', 'Queen', 'King', 'Bishop', 'Knight', 'Rook']
   end
 
   def add_piece(piece, y, x)
@@ -17,9 +16,8 @@ class Board
   end
 
   def add_home_rank(rank, color)
-    pieces = ['Rook', 'Knight', 'Bishop', 'Queen', 'King', 'Bishop', 'Knight', 'Rook']
     @state[rank].each_index do |i|
-      add_piece(create_piece(pieces[i], color), rank, i)
+      add_piece(create_piece(@pieces[i], color), rank, i)
     end
   end
 
@@ -36,7 +34,7 @@ class Board
     add_home_rank(7, 'white')
   end
 
-  def reset_state(piece)
+  def reset_piece_state(piece)
     piece.set_position(@state)
     piece.unmoved = false
     @state.each do |row|
@@ -46,16 +44,24 @@ class Board
     end
   end
 
-  def make_move(origin_y, origin_x, dest_y, dest_x)
-    piece = @state[origin_y][origin_x]
+  def set_piece_state(piece, dest_y, dest_x)
     piece.set_destination(dest_y, dest_x)
     piece.set_position(@state)
+  end
+
+  def set_nil(piece, origin_y, origin_x, dest_x)
+    @state[origin_y][dest_x] = nil if piece.instance_of?(Pawn) && @state[origin_y][dest_x].instance_of?(Pawn) && @state[origin_y][dest_x].moved_two
+    @state[origin_y][origin_x] = nil
+  end
+
+  def make_move(origin_y, origin_x, dest_y, dest_x)
+    piece = @state[origin_y][origin_x]
+    set_piece_state(piece, dest_y, dest_x)
     if piece.legal_move?(self)
       @state[dest_y][dest_x] = piece
-      @state[origin_y][dest_x] = nil if piece.instance_of?(Pawn) && @state[origin_y][dest_x].instance_of?(Pawn) && @state[origin_y][dest_x].moved_two
-      @state[origin_y][origin_x] = nil
+      set_nil(piece, origin_y, origin_x, dest_x)
     end
-    reset_state(piece)
+    reset_piece_state(piece)
     piece.set_moved_two if piece.instance_of?(Pawn) && (origin_y - dest_y).abs == 2
   end
 
@@ -117,15 +123,17 @@ class Board
     if horizontal_clear?([y, king_x], [y, rook_x]) && each_square_safe?(king, dir) && king.unmoved && rook.unmoved
       add_piece(king, y, king_dest_x)
       add_piece(rook, y, rook_dest_x)
-      @state[y][king_x] = nil
-      @state[y][rook_x] = nil
+      @state[y][king_x], @state[y][rook_x] = nil, nil
     end
+    king.unmoved, rook.unmoved = false, false
   end
+
 end
 
 class Piece
   attr_reader :origin, :destination, :piece_name, :color
   attr_accessor :unmoved
+
   def initialize(piece_name, color)
     @piece_name = piece_name
     @color = color
@@ -238,7 +246,6 @@ class Pawn < Piece
     @destination[0] == @origin[0] + dir && @diff2 == 1
   end
 
-  # could this inadvertently allow bad en passant on opposite side?
   def en_passant_possible?(board)
     board.piece_at?(@color, @origin[0], @destination[1], 'opponent') && board.state[@origin[0]][@destination[1]].moved_two
   end
@@ -263,6 +270,23 @@ class Pawn < Piece
     set_direction
     in_bounds? && no_opponent_in_front?(board) && no_friendly_at_dest?(board) && one_or_two_steps?(board) && x_in_bounds?(board) || enemy_at_attackable?(board)
   end
+
+  def prompt_loop(board, piece_name = nil)
+    until board.pieces.include?(piece_name) do
+      puts 'Enter piece name'
+      piece_name = gets.chomp.downcase.capitalize
+    end
+    piece_name
+  end
+
+  def promote(board)
+    if @origin[0] == 0 || @origin[0] == 7
+      color = @origin[0] == 0 ? 'white' : 'black'
+      piece_name = prompt_loop(board)
+      new_piece = board.create_piece(piece_name, color)
+      board.add_piece(new_piece, @origin[0], @origin[1])
+    end
+  end
 end
 
 def basic_print(board)
@@ -275,21 +299,61 @@ def basic_print(board)
   puts ''
 end
 
-# board = Board.new
-# board.setup_board
-# basic_print board
 
-# board.make_move(6, 4, 4, 4)
-# basic_print board
 
-# board.make_move(1, 3, 3, 3)
-# basic_print board
+board = Board.new
+board.setup_board
+basic_print board
 
-# board.make_move(4, 4, 3, 3)
-# basic_print board
+board.make_move(6, 4, 4, 4)
+basic_print board
 
-# board.make_move(3, 3, 2, 3)
-# basic_print board
+board.make_move(1, 4, 3, 4)
+basic_print board
 
-# board.make_move(1, 2, 2, 2)
-# basic_print board
+board.make_move(7, 6, 5, 5)
+basic_print board
+
+board.make_move(1, 7, 2, 7)
+basic_print board
+
+board.make_move(5, 5, 3, 4)
+basic_print board
+
+board.make_move(0, 6, 2, 5)
+basic_print board
+
+board.make_move(3, 4, 5, 5)
+basic_print board
+
+board.make_move(1, 6, 2, 6)
+basic_print board
+
+board.make_move(7, 1, 5, 2)
+basic_print board
+
+board.make_move(0, 5, 1, 6)
+basic_print board
+
+board.make_move(4, 4, 3, 4)
+basic_print board
+
+board.castle(board.state[0][4], board.state[0][7], 1)
+basic_print board
+
+board.make_move(3, 4, 2, 4)
+basic_print board
+
+board.make_move(2, 7, 3, 7)
+basic_print board
+
+board.make_move(2, 4, 1, 4)
+basic_print board
+
+board.make_move(3, 7, 4, 7)
+basic_print board
+
+board.make_move(1, 4, 0, 4)
+basic_print board
+board.state[0][4].promote(board)
+basic_print board
