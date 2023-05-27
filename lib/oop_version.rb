@@ -1,5 +1,71 @@
+module Display
+  def init_escape_sequences
+    @dark_bg = "\e[48;5;253m"
+    @light_bg = "\e[48;5;231m"
+    @black_fg = "\e[30m"
+    @red_fg = "\e[31m"
+    @reset = "\e[0m"
+  end
+
+  def init_pieces
+    @blank = '   '
+    @red = { kin: '♚', que: '♛', roo: '♜', bis: '♝', kni: '♞', paw: '♟︎' }.transform_values{ |value| @red_fg + value }
+    @black = @red.transform_values{ |value| @black_fg + value[5..-1] }
+  end
+  
+  def build_empty_board
+    @board = Array.new(8) do |row_i|
+      Array.new(8) do |el_i|
+        (row_i.even? == el_i.even? ? @light_bg : @dark_bg) + @blank + @reset
+      end
+    end
+  end
+
+  def init_display
+    init_escape_sequences
+    init_pieces
+  end
+
+  def load_board
+    build_empty_board
+    @state.each_with_index do |row, y|
+      row.each_with_index do |square, x|
+        if square
+          piece = square.piece_name.downcase.to_sym
+          @board[y][x][-6] = square.color == 'white' ? @red[piece] : @black[piece]
+        end
+      end
+    end
+  end
+
+  def print_as_white(rank = 9, letters = ('  a'..'  h'))
+    print ' ', *letters, "\n"
+    @board.each do |row|
+      print rank -= 1, ' '
+      row.each { |square| print square }
+      print ' ', rank, "\n"
+    end
+    print ' ', *letters, "\n"
+  end
+
+  # I'm pretty sure I don't have to make nearly duplicate methods here, just make the output based on the arguments.
+
+  def print_as_black(rank = 0, letters = ('  a'..'  h').to_a.reverse)
+    print ' ', *letters, "\n"
+    @board.reverse.each do |row|
+      print rank += 1, ' '
+      row.reverse.each { |square| print square }
+      print ' ', rank, "\n"
+    end
+    print ' ', *letters, "\n"
+  end
+
+end
+
 class Board
-  attr_reader :state, :pieces
+  include Display
+  attr_reader :state, :pieces, :board
+
   def initialize
     @state =  8.times.map { 8.times.map { nil } }
     @pieces = ['Rook', 'Knight', 'Bishop', 'Queen', 'King', 'Bishop', 'Knight', 'Rook']
@@ -48,19 +114,23 @@ class Board
     piece.set_destination(dest_y, dest_x)
     piece.set_position(@state)
   end
-
+  
   def set_nil(piece, origin_y, origin_x, dest_x)
-    @state[origin_y][dest_x] = nil if piece.instance_of?(Pawn) && @state[origin_y][dest_x].instance_of?(Pawn) && @state[origin_y][dest_x].moved_two
+    @state[origin_y][dest_x] = nil if piece.instance_of?(Pawn) && piece.en_passant_possible?(self)
     @state[origin_y][origin_x] = nil
   end
 
-  def make_move(origin_y, origin_x, dest_y, dest_x)
-    piece = @state[origin_y][origin_x]
-    set_piece_state(piece, dest_y, dest_x)
+  def move_piece_if_legal(piece, origin_y, origin_x, dest_y, dest_x)
     if piece.legal_move?(self)
       @state[dest_y][dest_x] = piece
       set_nil(piece, origin_y, origin_x, dest_x)
     end
+  end
+  
+  def make_move(origin_y, origin_x, dest_y, dest_x)
+    piece = @state[origin_y][origin_x]
+    set_piece_state(piece, dest_y, dest_x)
+    move_piece_if_legal(piece, origin_y, origin_x, dest_y, dest_x)
     reset_piece_state(piece)
     piece.set_moved_two if piece.instance_of?(Pawn) && (origin_y - dest_y).abs == 2
   end
@@ -127,8 +197,37 @@ class Board
     end
     king.unmoved, rook.unmoved = false, false
   end
-
 end
+
+
+
+# module InputHandler
+#   # include in Game, not Board
+
+#   #if not ambiguous
+#   def handle_input(notation, destination)
+#   end
+
+#   def unambiguous_command(input)
+
+#   end
+
+# end
+
+# class Game
+#   include InputHandler
+
+#   def initialize
+#     @board = Board.new()
+#     @current_player = 'white'
+#   end
+
+#   def play_game
+#     @board.setup_board
+
+#   end
+
+# end
 
 class Piece
   attr_reader :origin, :destination, :piece_name, :color
@@ -155,13 +254,9 @@ class Piece
     @destination = [y, x]
   end
 
-  def set_diffs
-    @diff1 = (@origin[0] - @destination[0]).abs
-    @diff2 = (@origin[1] - @destination[1]).abs
-  end
-
-  def in_bounds?
-    @destination.all? { |n| n.between?(0, 7) }
+  def find_distances
+    @distance_y = (@origin[0] - @destination[0]).abs
+    @distance_x = (@origin[1] - @destination[1]).abs
   end
 
   def no_friendly_at_dest?(board)
@@ -180,22 +275,22 @@ end
 
 class Knight < Piece
   def legal_move?(board)
-    set_diffs
-    [@diff1, @diff2].sort == [1, 2] && in_bounds? && no_friendly_at_dest?(board)
+    find_distances
+    [@distance_y, @distance_x].sort == [1, 2] && no_friendly_at_dest?(board)
   end
 end
 
 class Bishop < Piece
   def legal_move?(board)
-    set_diffs
-    @diff1 == @diff2 && in_bounds? && no_friendly_at_dest?(board) && diagonal_clear?(board)
+    find_distances
+    @distance_y == @distance_x && no_friendly_at_dest?(board) && diagonal_clear?(board)
   end
 end
 
 class Rook < Piece
   def legal_move?(board)
-    set_diffs
-    (@diff1.zero? || @diff2.zero?) && no_friendly_at_dest?(board) && in_bounds? && horizontal_clear?(board)
+    find_distances
+    (@distance_y.zero? || @distance_x.zero?) && no_friendly_at_dest?(board) && horizontal_clear?(board)
   end
 end
 
@@ -205,8 +300,8 @@ class Queen < Piece
   end
 
   def legal_move?(board)
-    set_diffs
-    no_friendly_at_dest?(board) && in_bounds? && queen_path_clear?(board) && (@diff1 == @diff2 || (@diff1.zero? || @diff2.zero?))
+    find_distances
+    no_friendly_at_dest?(board) && queen_path_clear?(board) && (@distance_y == @distance_x || (@distance_y.zero? || @distance_x.zero?))
   end
 end
 
@@ -216,8 +311,8 @@ class King < Piece
   end
 
   def legal_move?(board)
-    set_diffs
-    no_friendly_at_dest?(board) && in_bounds? && @diff1.between?(0, 1) && @diff2.between?(0, 1) && dest_safe?(board)
+    find_distances
+    no_friendly_at_dest?(board) && @distance_y.between?(0, 1) && @distance_x.between?(0, 1) && dest_safe?(board)
   end
 end
 
@@ -241,9 +336,9 @@ class Pawn < Piece
   end
 
   def square_attackable?
-    set_diffs
+    find_distances
     dir = @color == 'black' ? 1 : -1
-    @destination[0] == @origin[0] + dir && @diff2 == 1
+    @destination[0] == @origin[0] + dir && @distance_x == 1
   end
 
   def en_passant_possible?(board)
@@ -268,7 +363,7 @@ class Pawn < Piece
 
   def legal_move?(board)
     set_direction
-    in_bounds? && no_opponent_in_front?(board) && no_friendly_at_dest?(board) && one_or_two_steps?(board) && x_in_bounds?(board) || enemy_at_attackable?(board)
+    no_opponent_in_front?(board) && no_friendly_at_dest?(board) && one_or_two_steps?(board) && x_in_bounds?(board) || enemy_at_attackable?(board)
   end
 
   def prompt_loop(board, piece_name = nil)
@@ -298,62 +393,3 @@ def basic_print(board)
   end
   puts ''
 end
-
-
-
-board = Board.new
-board.setup_board
-basic_print board
-
-board.make_move(6, 4, 4, 4)
-basic_print board
-
-board.make_move(1, 4, 3, 4)
-basic_print board
-
-board.make_move(7, 6, 5, 5)
-basic_print board
-
-board.make_move(1, 7, 2, 7)
-basic_print board
-
-board.make_move(5, 5, 3, 4)
-basic_print board
-
-board.make_move(0, 6, 2, 5)
-basic_print board
-
-board.make_move(3, 4, 5, 5)
-basic_print board
-
-board.make_move(1, 6, 2, 6)
-basic_print board
-
-board.make_move(7, 1, 5, 2)
-basic_print board
-
-board.make_move(0, 5, 1, 6)
-basic_print board
-
-board.make_move(4, 4, 3, 4)
-basic_print board
-
-board.castle(board.state[0][4], board.state[0][7], 1)
-basic_print board
-
-board.make_move(3, 4, 2, 4)
-basic_print board
-
-board.make_move(2, 7, 3, 7)
-basic_print board
-
-board.make_move(2, 4, 1, 4)
-basic_print board
-
-board.make_move(3, 7, 4, 7)
-basic_print board
-
-board.make_move(1, 4, 0, 4)
-basic_print board
-board.state[0][4].promote(board)
-basic_print board
