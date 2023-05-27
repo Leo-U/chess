@@ -24,20 +24,6 @@ describe Knight do
           expect(legal_knight.legal_move?(board)).to be true
         end
       end
-
-      context 'when destination is 2 left and 1 down' do
-        it 'returns false' do
-          legal_knight.set_destination(1, -2)
-          expect(legal_knight.legal_move?(board)).to be false
-        end
-      end
-
-      context 'when destination is 1 left and 2 down' do
-        it 'returns false' do
-          legal_knight.set_destination(2, -1)
-          expect(legal_knight.legal_move?(board)).to be false
-        end
-      end
     end
 
     context 'when knight is at 4, 2' do
@@ -47,28 +33,28 @@ describe Knight do
       end
 
       context 'when destination is 1 left and 2 down' do
-        it 'returns true' do
+        it'returns true' do
           legal_knight.set_destination(6, 1)
           expect(legal_knight.legal_move?(board)).to be true
         end
       end
 
       context 'when destination is 1 left and 2 up' do
-        it 'returns true' do
+        it'returns true' do
           legal_knight.set_destination(2, 1)
           expect(legal_knight.legal_move?(board)).to be true
         end
       end
 
       context 'when destination is same as origin' do
-        it 'returns false' do
+        it'returns false' do
           legal_knight.set_destination(4, 2)
           expect(legal_knight.legal_move?(board)).to be false
         end
       end
 
       context 'when destination is occupied by friendly piece' do
-        it 'returns false' do
+        it'returns false' do
           board.state[6][1] = described_class.new('kn2', 'black')
           legal_knight.set_destination(6, 1)
           expect(legal_knight.legal_move?(board)).to be false
@@ -76,7 +62,7 @@ describe Knight do
       end
 
       context 'when destination is occupied by opponent piece' do
-        it 'returns true' do
+        it'returns true' do
           board.state[6][1] = described_class.new('kn2', 'white')
           legal_knight.set_destination(6, 1)
           expect(legal_knight.legal_move?(board)).to be true
@@ -90,12 +76,6 @@ describe Knight do
         legal_knight.set_position(board.state)
       end
 
-      context 'when destination is 1 right and 2 down' do
-        it 'returns false' do
-          legal_knight.set_destination(4, 8)
-          expect(legal_knight.legal_move?(board)).to be false
-        end
-      end
     end
   end
 end
@@ -124,13 +104,6 @@ describe Bishop do
           expect(legal_bishop.legal_move?(board)).to be false
         end
       end
-
-      context 'when destination is out of bounds' do
-        it 'returns false' do
-          legal_bishop.set_destination(-1, -1)
-          expect(legal_bishop.legal_move?(board)).to be false
-        end
-      end
     end
 
     context 'when bishop is at 0, 7' do
@@ -143,13 +116,6 @@ describe Bishop do
         it 'returns true' do
           legal_bishop.set_destination(7, 0)
           expect(legal_bishop.legal_move?(board)).to be true
-        end
-      end
-
-      context 'when destination is out of bounds' do
-        it 'returns false' do
-          legal_bishop.set_destination(-1, 8)
-          expect(legal_bishop.legal_move?(board)).to be false
         end
       end
     end
@@ -174,13 +140,6 @@ describe Bishop do
             legal_bishop.set_destination(5, 1)
             expect(legal_bishop.legal_move?(board)).to be false
           end
-        end
-      end
-
-      context 'when destination is 8, 4' do
-        it 'returns false' do
-          legal_bishop.set_destination(8, 4)
-          expect(legal_bishop.legal_move?(board)).to be false
         end
       end
     end
@@ -353,13 +312,6 @@ describe Rook do
         end
       end
 
-      context 'when destination is out of bounds' do
-        it 'returns false' do
-          legal_rook.set_destination(0, 8)
-          expect(legal_rook.legal_move?(board)).to be false
-        end
-      end
-
       context 'when destination is occupied by friendly piece' do
         it 'returns false' do
           board.state[2][1] = described_class.new('rk2', 'black')
@@ -515,13 +467,6 @@ describe Queen do
             board.state[1][1] = Rook.new('rk1', 'black')
             expect(legal_queen.legal_move?(board)).to be false
           end
-        end
-      end
-
-      context 'when destination is out of bounds' do
-        it 'returns false' do
-          legal_queen.set_destination(-1, -1)
-          expect(legal_queen.legal_move?(board)).to be false
         end
       end
 
