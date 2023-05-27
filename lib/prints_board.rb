@@ -50,12 +50,14 @@ class Board
     print ' ', *letters, "\n"
     @board.each do |row|
       print rank -= 1, ' ' 
-      row.each do |entry|
-        print entry
-      end
+      row.each { |square| print square }
       print ' ', rank, "\n"
     end
     print ' ', *letters, "\n"
+  end
+
+  def print_board
+    
   end
 
   def build_starting_position
