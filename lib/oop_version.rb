@@ -13,6 +13,11 @@ module Display
     @black = @red.transform_values{ |value| @black_fg + value[5..-1] }
   end
   
+  def init_display
+    init_escape_sequences
+    init_pieces
+  end
+
   def build_empty_board
     @board = Array.new(8) do |row_i|
       Array.new(8) do |el_i|
@@ -21,12 +26,7 @@ module Display
     end
   end
 
-  def init_display
-    init_escape_sequences
-    init_pieces
-  end
-
-  def load_board
+  def fill_board
     build_empty_board
     @state.each_with_index do |row, y|
       row.each_with_index do |square, x|
@@ -38,23 +38,16 @@ module Display
     end
   end
 
-  def print_as_white(rank = 9, letters = ('  a'..'  h'))
-    print ' ', *letters, "\n"
-    @board.each do |row|
-      print rank -= 1, ' '
-      row.each { |square| print square }
-      print ' ', rank, "\n"
-    end
-    print ' ', *letters, "\n"
+  def board_as_black
+    @board.reverse.map { |row| row.reverse }
   end
 
-  # I'm pretty sure I don't have to make nearly duplicate methods here, just make the output based on the arguments.
-
-  def print_as_black(rank = 0, letters = ('  a'..'  h').to_a.reverse)
+  def print_board(side = 'white', board = @board, rank = 9, i = -1, letters = ('  a'..'  h') )
+    (board = board_as_black; rank = 0; i = 1; letters = letters.to_a.reverse) if side == 'black'
     print ' ', *letters, "\n"
-    @board.reverse.each do |row|
-      print rank += 1, ' '
-      row.reverse.each { |square| print square }
+    board.each do |row|
+      print rank += i, ' '
+      row.each { |square| print square }
       print ' ', rank, "\n"
     end
     print ' ', *letters, "\n"
@@ -201,33 +194,97 @@ end
 
 
 
-# module InputHandler
-#   # include in Game, not Board
+module InputHandler
+  # input will be origin square -- destination square if ambiguous
+  # otherwise, it will be piece to dest square
 
-#   #if not ambiguous
-#   def handle_input(notation, destination)
-#   end
+  def draw?
+    @input == 'draw'
+  end
 
-#   def unambiguous_command(input)
+  def long_c?
+    @input == 'o-o-o'
+  end
 
-#   end
+  def short_c?
+    @input == 'o-o'
+  end
 
-# end
+  def resign?
+    @input == 'resign'
+  end
 
-# class Game
-#   include InputHandler
+  def algebraic?
+    @input[-2].between?('a', 'h') && @input[-1].between?('1', '8')
+  end
 
-#   def initialize
-#     @board = Board.new()
-#     @current_player = 'white'
-#   end
+  def pawn?
+    @input.length == 2 && algebraic?
+  end
 
-#   def play_game
-#     @board.setup_board
+  def not_pawn?
+    @input.length == 3 && @letters.any?(@input[0]) && algebraic?
+  end
 
-#   end
+  def input_valid?
+    not_pawn? || pawn? || short_c? || long_c? || draw? || resign?
+  end
 
-# end
+  def give_input_feedback
+    puts input_valid? ? "#{@input} is good" : "#{@input} is not good" 
+  end
+
+  def get_input
+    @input = gets.chomp.downcase
+  end
+
+  # check if any piece 
+  def ambiguous?
+
+  end
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  #if not ambiguous
+  # def handle_input(notation, destination)
+    
+  # end
+
+  # def unambiguous_command(input)
+
+  # end
+
+end
+
+class Game # NOTE: SOMEWHERE I'LL NEED COMMAND FOR MOVE INSTRUCTIONS
+  include InputHandler
+
+  def initialize
+    @board = Board.new()
+    @turn = 'white'
+    @game_status = 'ongoing'
+    @input = ''
+    @letters = ['n', 'b', 'r', 'q', 'k']
+  end
+
+  def play_game
+    @board.setup_board
+  end
+  
+
+end
 
 class Piece
   attr_reader :origin, :destination, :piece_name, :color
@@ -393,3 +450,13 @@ def basic_print(board)
   end
   puts ''
 end
+
+board = Board.new
+board.init_display
+board.setup_board
+board.fill_board
+
+board.print_board
+board.print_board('black')
+
+game = Game.new
