@@ -8,7 +8,7 @@ describe Knight do
     context 'when knight is at top left corner' do
       before do
         board.state[0][0] = legal_knight
-        legal_knight.set_position(board.state)
+        legal_knight.set_origin(board.state)
       end
 
       context 'when  destination is 2 right and 1 down' do
@@ -29,7 +29,7 @@ describe Knight do
     context 'when knight is at 4, 2' do
       before do
         board.state[4][2] = legal_knight
-        legal_knight.set_position(board.state)
+        legal_knight.set_origin(board.state)
       end
 
       context 'when destination is 1 left and 2 down' do
@@ -73,7 +73,7 @@ describe Knight do
     context 'when knight is at 2, 7' do
       before do
         board.state[2][7] = legal_knight
-        legal_knight.set_position(board.state)
+        legal_knight.set_origin(board.state)
       end
 
     end
@@ -88,7 +88,7 @@ describe Bishop do
     context 'when bishop is at 0, 0' do
       before do
         board.state[0][0] = legal_bishop
-        legal_bishop.set_position(board.state)
+        legal_bishop.set_origin(board.state)
       end
 
       context 'when destination is at 1, 1' do
@@ -109,7 +109,7 @@ describe Bishop do
     context 'when bishop is at 0, 7' do
       before do
         board.state[0][7] = legal_bishop
-        legal_bishop.set_position(board.state)
+        legal_bishop.set_origin(board.state)
       end
 
       context 'when destination is at 7, 0' do
@@ -123,7 +123,7 @@ describe Bishop do
     context 'when bishop is at 7, 3' do
       before do
         board.state[7][3] = legal_bishop
-        legal_bishop.set_position(board.state)
+        legal_bishop.set_origin(board.state)
       end
 
       context 'when destination is 5, 1' do
@@ -147,7 +147,7 @@ describe Bishop do
     context 'when bishop is at 3, 3' do
       before do
         board.state[3][3] = legal_bishop
-        legal_bishop.set_position(board.state)
+        legal_bishop.set_origin(board.state)
       end
 
       context 'when destination is 2, 4' do
@@ -189,7 +189,7 @@ describe Bishop do
     context 'when bishop is at 3, 3' do
       before do
         board.state[3][3] = between_bishop
-        between_bishop.set_position(board.state)
+        between_bishop.set_origin(board.state)
       end
   
       context 'when destination y/x are both > origin y/x' do
@@ -271,7 +271,7 @@ describe Rook do
     context 'when rook is at 0, 0' do
       before do
         board.state[0][0] = legal_rook
-        legal_rook.set_position(board.state)
+        legal_rook.set_origin(board.state)
       end
 
       context 'when destination is 2, 0' do
@@ -337,7 +337,7 @@ describe Rook do
     context 'when rook is at 3, 3' do
       before do
         board.state[3][3] = between_rook
-        between_rook.set_position(board.state)
+        between_rook.set_origin(board.state)
       end
 
       context 'when destination is 7, 3' do
@@ -443,7 +443,7 @@ describe Queen do
     context 'when queen is at 3, 3' do
       before do
         board.state[3][3] = legal_queen
-        legal_queen.set_position(board.state)
+        legal_queen.set_origin(board.state)
       end
 
       context 'when destination is at 1, 1' do
@@ -570,7 +570,7 @@ describe King do
     context 'when king is at 3, 3' do
       before do
         board.state[3][3] = legal_king
-        legal_king.set_position(board.state)
+        legal_king.set_origin(board.state)
       end
 
       context 'when destination is 4, 4' do
@@ -682,7 +682,7 @@ describe Pawn do
 
       before do
         board.state[1][4] = legal_pawn_black
-        legal_pawn_black.set_position(board.state)
+        legal_pawn_black.set_origin(board.state)
       end
 
       context 'when destination is 2, 4' do
@@ -761,7 +761,7 @@ describe Pawn do
         it 'returns true' do
           white_pawn = described_class.new('Pwn', 'white')
           board.state[3][5] = white_pawn
-          white_pawn.set_position(board.state)
+          white_pawn.set_origin(board.state)
           board.make_move(1, 4, 3, 4)
           white_pawn.set_destination(2, 4)
           expect(white_pawn.legal_move?(board)).to be true
@@ -774,7 +774,7 @@ describe Pawn do
 
       before do
         board.state[6][3] = legal_pawn_white
-        legal_pawn_white.set_position(board.state)
+        legal_pawn_white.set_origin(board.state)
       end
 
       context 'when destination is 5, 3' do
@@ -807,7 +807,7 @@ describe Pawn do
     context 'when white pawn arrives at rank 0' do
       it 'pawn is promoted to specified piece' do
         board.state[0][3] = white_pawn
-        white_pawn.set_position(board.state)
+        white_pawn.set_origin(board.state)
         allow(white_pawn).to receive(:gets).and_return('qUeEn')
         y = white_pawn.origin[0]
         x = white_pawn.origin[1]
@@ -819,7 +819,7 @@ describe Pawn do
     context 'when black pawn arrives at rank 7' do
       it 'pawn is promoted to specified piece' do
         board.state[7][0] = black_pawn
-        black_pawn.set_position(board.state)
+        black_pawn.set_origin(board.state)
         allow(black_pawn).to receive(:gets).and_return('rook')
         y = black_pawn.origin[0]
         x = black_pawn.origin[1]
@@ -886,7 +886,7 @@ describe Board do
           board.state[0][4] = Queen.new('que', 'black')
           board.state[0][5] = Rook.new('roo', 'black')
           board.state[0][6] = Rook.new('roo', 'black')
-          king.set_position(board.state)
+          king.set_origin(board.state)
           expect(board.each_square_safe?(king, 1)).to be false
         end
       end
@@ -894,7 +894,7 @@ describe Board do
       context 'when king square is under attack(check)' do
         it 'returns false' do
           board.state[0][4] = Queen.new('que', 'black')
-          king.set_position(board.state)
+          king.set_origin(board.state)
           expect(board.each_square_safe?(king, 1)).to be false
         end
       end
@@ -902,7 +902,7 @@ describe Board do
       context 'when middle square is under attack' do
         it 'returns false' do
           board.state[0][5] = Rook.new('que', 'black')
-          king.set_position(board.state)
+          king.set_origin(board.state)
           expect(board.each_square_safe?(king, 1)).to be false
         end
       end
@@ -910,14 +910,14 @@ describe Board do
       context 'when target square is under attack' do
         it 'returns false' do
           board.state[0][6] = Rook.new('que', 'black')
-          king.set_position(board.state)
+          king.set_origin(board.state)
           expect(board.each_square_safe?(king, 1)).to be false
         end
       end
       
       context 'when no squares are under attack' do
         it 'returns true' do
-          king.set_position(board.state)
+          king.set_origin(board.state)
           expect(board.each_square_safe?(king, 1)).to be true
         end
       end
@@ -937,7 +937,7 @@ describe Board do
           board.state[7][2] = Queen.new('que', 'black')
           board.state[7][3] = Rook.new('roo', 'black')
           board.state[7][4] = Rook.new('roo', 'black')
-          king.set_position(board.state)
+          king.set_origin(board.state)
           expect(board.each_square_safe?(king, -1)).to be false
         end
       end
@@ -945,7 +945,7 @@ describe Board do
       context 'when king square is under attack(check)' do
         it 'returns false' do
           board.state[7][4] = Queen.new('que', 'black')
-          king.set_position(board.state)
+          king.set_origin(board.state)
           expect(board.each_square_safe?(king, -1)).to be false
         end
       end
@@ -953,7 +953,7 @@ describe Board do
       context 'when middle square is under attack' do
         it 'returns false' do
           board.state[7][3] = Rook.new('roo', 'black')
-          king.set_position(board.state)
+          king.set_origin(board.state)
           expect(board.each_square_safe?(king, -1)).to be false
         end
       end
@@ -961,14 +961,14 @@ describe Board do
       context 'when target square is under attack' do
         it 'returns false' do
           board.state[7][2] = Rook.new('roo', 'black')
-          king.set_position(board.state)
+          king.set_origin(board.state)
           expect(board.each_square_safe?(king, -1)).to be false
         end
       end
 
       context 'when no squares are under attack' do
         it 'returns true' do
-          king.set_position(board.state)
+          king.set_origin(board.state)
           expect(board.each_square_safe?(king, -1)).to be true
         end
       end
@@ -983,8 +983,8 @@ describe Board do
       before do
         board.state[7][4] = king
         board.state[7][7] = rook
-        king.set_position(board.state)
-        rook.set_position(board.state)        
+        king.set_origin(board.state)
+        rook.set_origin(board.state)        
       end
 
       context 'when path is clear' do
@@ -1047,8 +1047,8 @@ describe Board do
       before do
         board.state[7][4] = king
         board.state[7][0] = rook
-        king.set_position(board.state)
-        rook.set_position(board.state)        
+        king.set_origin(board.state)
+        rook.set_origin(board.state)        
       end
 
       context 'when path is clear' do
@@ -1119,8 +1119,8 @@ describe Board do
       before do
         board.state[0][4] = king
         board.state[0][7] = rook
-        king.set_position(board.state)
-        rook.set_position(board.state)        
+        king.set_origin(board.state)
+        rook.set_origin(board.state)        
       end
 
       context 'when path is clear' do
@@ -1183,8 +1183,8 @@ describe Board do
       before do
         board.state[0][4] = king
         board.state[0][0] = rook
-        king.set_position(board.state)
-        rook.set_position(board.state)        
+        king.set_origin(board.state)
+        rook.set_origin(board.state)        
       end
 
       context 'when path is clear' do
@@ -1248,4 +1248,42 @@ describe Board do
       end
     end
   end
+
+  # describe '#count_legal_pieces' do
+  #   let(:game) { Game.new }
+  #   let(:piece) { game.lookup_piece }
+  #   let(:dest_y) { game.instance_variable_get(:@dest_y) }
+  #   let(:dest_x) { game.instance_variable_get(:@dest_x) }
+  #   let(:turn_color) { game.instance_variable_get(:@turn_color) }
+
+  #   before do
+  #     allow(game).to receive(:gets).and_return('nf3')
+  #     game.get_input
+  #     game.retrieve_dest
+  #     board.setup_board
+  #   end
+
+  #   context 'when no pieces can move to destination' do
+  #     it 'returns 0' do
+  #       board.state[7][6] = nil
+  #       expect(board.count_legal_pieces(turn_color, piece, dest_y, dest_x)).to eq(0)
+  #     end
+  #   end
+
+  #   context 'when one piece can move to destination' do
+  #     it 'returns 1' do
+  #       expect(board.count_legal_pieces(turn_color, piece, dest_y, dest_x)).to eq(1)
+  #     end
+  #   end
+
+  #   context 'when two pieces can move to destination' do
+  #     it 'returns 2' do
+  #       board.state[4][7] = board.state[7][1]
+  #       board.state[7][1] = nil
+  #       board.state[4][7].set_origin(board.state)
+  #       expect(board.count_legal_pieces(turn_color, piece, dest_y, dest_x)).to eq(2)
+  #     end
+  #   end
+  # end
+
 end
