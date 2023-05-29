@@ -63,7 +63,8 @@ end
 
 class Board
   include Display
-  attr_reader :state, :pieces, :board, :legal_pieces
+  attr_reader :state, :pieces, :board
+  attr_accessor :legal_pieces
 
   def initialize
     @state =  8.times.map { 8.times.map { nil } }
@@ -268,16 +269,23 @@ module InputHandler
     @origin_x = @board.legal_pieces[0].origin[1]
   end
 
-  
+  # rework this trash:
   def non_pawn_procedure
     @board.find_legal_pieces(@turn_color, lookup_piece, @dest_y, @dest_x)
-    if @board.legal_pieces.length == 1
+    case @board.legal_pieces.length
+    when 1
       retrieve_origin_from_piece
-    elsif @board.legal_pieces.length > 1
+      @board.legal_pieces = []
+
+      # call recursive function here?
+    when > 1
       puts 'More than one such piece can more there. Enter coordinate of piece and coordinate of destination like so: \'a1a4\''
+      @board.legal_pieces = []
       get_input_until_valid
-    elsif @board.legel_pieces.length == 0
+    else
       puts 'No such piece can move there. Try again.'
+      @board.legal_pieces = []
+      get_input_until_valid
     end
   end
 
@@ -288,7 +296,7 @@ module InputHandler
 
 end
 
-class Game # NOTE: SOMEWHERE I'LL NEED COMMAND FOR MOVE INSTRUCTIONS
+class Game
   include InputHandler
 
   def initialize
@@ -308,10 +316,20 @@ class Game # NOTE: SOMEWHERE I'LL NEED COMMAND FOR MOVE INSTRUCTIONS
   end
 
 
-
   def play_game
     @board.setup_board
     @board.full_print_sequence(@turn_color)
+
+    # another function should call here -- it will be used recursively
+
+    
+
+
+
+
+
+
+
 
     get_input_until_valid
     retrieve_dest
@@ -323,7 +341,6 @@ class Game # NOTE: SOMEWHERE I'LL NEED COMMAND FOR MOVE INSTRUCTIONS
     @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x)
     @board.full_print_sequence(@turn_color)
   end
-  
 
 end
 
