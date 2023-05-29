@@ -42,7 +42,7 @@ module Display
     @board.reverse.map { |row| row.reverse }
   end
 
-  def print_board(side = 'white', board = @board, rank = 9, i = -1, letters = ('  a'..'  h') )
+  def print_board(side, board = @board, rank = 9, i = -1, letters = ('  a'..'  h') )
     (board = board_as_black; rank = 0; i = 1; letters = letters.to_a.reverse) if side == 'black'
     print ' ', *letters, "\n"
     board.each do |row|
@@ -53,20 +53,27 @@ module Display
     print ' ', *letters, "\n"
   end
 
+  def full_print_sequence(side)
+    init_display
+    fill_board
+    print_board(side)
+  end
+
 end
 
 class Board
   include Display
-  attr_reader :state, :pieces, :board
+  attr_reader :state, :pieces, :board, :legal_pieces
 
   def initialize
     @state =  8.times.map { 8.times.map { nil } }
     @pieces = ['Rook', 'Knight', 'Bishop', 'Queen', 'King', 'Bishop', 'Knight', 'Rook']
+    @legal_pieces = []
   end
 
   def add_piece(piece, y, x)
     @state[y][x] = piece
-    @state[y][x].set_position(@state)
+    @state[y][x].set_origin(@state)
   end
 
   def create_piece(name, color)
@@ -94,7 +101,7 @@ class Board
   end
 
   def reset_piece_state(piece)
-    piece.set_position(@state)
+    piece.set_origin(@state)
     piece.unmoved = false
     @state.each do |row|
       row.each do |el|
@@ -105,7 +112,7 @@ class Board
 
   def set_piece_state(piece, dest_y, dest_x)
     piece.set_destination(dest_y, dest_x)
-    piece.set_position(@state)
+    piece.set_origin(@state)
   end
   
   def set_nil(piece, origin_y, origin_x, dest_x)
@@ -164,7 +171,7 @@ class Board
   def square_safe?(king, dest_y, dest_x)
     opponent_pieces = @state.flatten.select { |el| el.is_a?(Piece) && el.color != king.color }
     opponent_pieces.each do |piece|
-      piece.set_position(@state)
+      piece.set_origin(@state)
       piece.set_destination(dest_y, dest_x)
     end
     opponent_pieces.none? { |piece| piece.instance_of?(Pawn) ? piece.square_attackable? : piece.legal_move?(self) }
@@ -190,12 +197,25 @@ class Board
     end
     king.unmoved, rook.unmoved = false, false
   end
+
+  def find_legal_pieces(turn_color, piece_name, dest_y, dest_x)
+    @state.each do |row|
+      row.each do |piece|
+        if !piece.nil? && piece.color == turn_color && piece.piece_name.downcase == piece_name
+          piece.set_destination(dest_y, dest_x)
+          @legal_pieces << piece if piece.legal_move?(self)
+          piece.destination = []
+        end
+      end
+    end
+  end
+
 end
 
 
 
 module InputHandler
-  # input will be origin square -- destination square if ambiguous
+  # input will be origin square -- destination square if previous input ambiguous
   # otherwise, it will be piece to dest square
 
   def draw?
@@ -214,57 +234,57 @@ module InputHandler
     @input == 'resign'
   end
 
-  def algebraic?
-    @input[-2].between?('a', 'h') && @input[-1].between?('1', '8')
+  def algebraic?(index_1, index_2)
+    @input[index_1].between?('a', 'h') && @input[index_2].between?('1', '8')
   end
 
   def pawn?
-    @input.length == 2 && algebraic?
+    @input.length == 2 && algebraic?(-2, -1)
   end
 
-  def not_pawn?
-    @input.length == 3 && @letters.any?(@input[0]) && algebraic?
+  def non_pawn?
+    @input.length == 3 && @letters.key?(@input[0]) && algebraic?(-2, -1)
+  end
+
+  def explicit?
+    @input.length == 4 && algebraic?(0, 1) && algebraic?(-2, -1)
   end
 
   def input_valid?
-    not_pawn? || pawn? || short_c? || long_c? || draw? || resign?
-  end
-
-  def give_input_feedback
-    puts input_valid? ? "#{@input} is good" : "#{@input} is not good" 
+    non_pawn? || pawn? || short_c? || long_c? || draw? || resign? || explicit?
   end
 
   def get_input
     @input = gets.chomp.downcase
   end
 
-  # check if any piece 
-  def ambiguous?
-
+  def retrieve_dest
+    @dest_y = 8 - @input[-1].to_i
+    @dest_x = ('a'..'h').to_a.index @input[-2]
   end
 
+  def retrieve_origin_from_piece
+    @origin_y = @board.legal_pieces[0].origin[0]
+    @origin_x = @board.legal_pieces[0].origin[1]
+  end
 
   
+  def non_pawn_procedure
+    @board.find_legal_pieces(@turn_color, lookup_piece, @dest_y, @dest_x)
+    if @board.legal_pieces.length == 1
+      retrieve_origin_from_piece
+    elsif @board.legal_pieces.length > 1
+      puts 'More than one such piece can more there. Enter coordinate of piece and coordinate of destination like so: \'a1a4\''
+      get_input_until_valid
+    elsif @board.legel_pieces.length == 0
+      puts 'No such piece can move there. Try again.'
+    end
+  end
 
+  def lookup_piece
+    @letters[@input[0]]
+  end
 
-
-
-
-
-
-
-
-
-
-
-  #if not ambiguous
-  # def handle_input(notation, destination)
-    
-  # end
-
-  # def unambiguous_command(input)
-
-  # end
 
 end
 
@@ -273,22 +293,43 @@ class Game # NOTE: SOMEWHERE I'LL NEED COMMAND FOR MOVE INSTRUCTIONS
 
   def initialize
     @board = Board.new()
-    @turn = 'white'
+    @turn_color = 'white'
     @game_status = 'ongoing'
     @input = ''
-    @letters = ['n', 'b', 'r', 'q', 'k']
+    @letters = { 'n' => 'kni', 'b' => 'bis', 'r' => 'roo', 'q' => 'que', 'k' => 'kin' }
   end
+
+  def get_input_until_valid
+    until input_valid? do
+      puts 'input move'
+      get_input
+      puts 'invalid input, try again' unless input_valid?
+    end
+  end
+
+
 
   def play_game
     @board.setup_board
+    @board.full_print_sequence(@turn_color)
+
+    get_input_until_valid
+    retrieve_dest
+
+    # @board.find_legal_pieces(@turn_color, lookup_piece, @dest_y, @dest_x)
+
+    # retrieve_origin_from_piece if @board.legal_pieces.length == 1
+
+    @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x)
+    @board.full_print_sequence(@turn_color)
   end
   
 
 end
 
 class Piece
-  attr_reader :origin, :destination, :piece_name, :color
-  attr_accessor :unmoved
+  attr_reader :origin, :piece_name, :color
+  attr_accessor :unmoved, :destination
 
   def initialize(piece_name, color)
     @piece_name = piece_name
@@ -299,7 +340,7 @@ class Piece
     @unmoved = true
   end
 
-  def set_position(state)
+  def set_origin(state)
     state.each do |row|
       if row.include? self
         @origin = state.index(row), row.index(self)
@@ -451,12 +492,24 @@ def basic_print(board)
   puts ''
 end
 
-board = Board.new
-board.init_display
-board.setup_board
-board.fill_board
+# board = Board.new
+# board.init_display
+# board.setup_board
+# board.fill_board
 
-board.print_board
-board.print_board('black')
+
+# board.print_board
+# board.print_board('black')
+
+
+# # # # # # # #
+
+# game = Game.new
+# 25.times do
+#   game.get_input
+#   puts game.input_valid? ? 'valid' : 'invalid'
+#    puts game.lookup_piece
+# end
 
 game = Game.new
+game.play_game
