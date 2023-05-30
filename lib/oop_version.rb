@@ -63,8 +63,8 @@ end
 
 class Board
   include Display
-  attr_reader :state, :pieces, :board
-  attr_accessor :legal_pieces
+  attr_reader :pieces, :board
+  attr_accessor :legal_pieces, :state
 
   def initialize
     @state =  8.times.map { 8.times.map { nil } }
@@ -178,7 +178,21 @@ class Board
     opponent_pieces.none? { |piece| piece.instance_of?(Pawn) ? piece.square_attackable? : piece.legal_move?(self) }
   end
 
-  # requires position to be set:
+  def find_king(color)
+    @state.each do |row|
+      row.each do |piece|
+        return piece if !piece.nil? && piece.instance_of?(King) && piece.color == color
+      end
+    end
+  end
+
+  def king_is_safe?(color)
+    king = find_king(color)
+    dest_y = king.origin[0]
+    dest_x = king.origin[1]
+    square_safe?(king, dest_y, dest_x)
+  end
+
   def each_square_safe?(king, dir, y = king.origin[0], x = king.origin[1])
     coords = [[y, x], [y, x + dir], [y, x + dir * 2]]
     booleans = []
@@ -211,137 +225,32 @@ class Board
     end
   end
 
-end
-
-
-
-module InputHandler
-  # input will be origin square -- destination square if previous input ambiguous
-  # otherwise, it will be piece to dest square
-
-  def draw?
-    @input == 'draw'
-  end
-
-  def long_c?
-    @input == 'o-o-o'
-  end
-
-  def short_c?
-    @input == 'o-o'
-  end
-
-  def resign?
-    @input == 'resign'
-  end
-
-  def algebraic?(index_1, index_2)
-    @input[index_1].between?('a', 'h') && @input[index_2].between?('1', '8')
-  end
-
-  def pawn?
-    @input.length == 2 && algebraic?(-2, -1)
-  end
-
-  def non_pawn?
-    @input.length == 3 && @letters.key?(@input[0]) && algebraic?(-2, -1)
-  end
-
-  def explicit?
-    @input.length == 4 && algebraic?(0, 1) && algebraic?(-2, -1)
-  end
-
-  def input_valid?
-    non_pawn? || pawn? || short_c? || long_c? || draw? || resign? || explicit?
-  end
-
-  def get_input
-    @input = gets.chomp.downcase
-  end
-
-  def retrieve_dest
-    @dest_y = 8 - @input[-1].to_i
-    @dest_x = ('a'..'h').to_a.index @input[-2]
-  end
-
-  def retrieve_origin_from_piece
-    @origin_y = @board.legal_pieces[0].origin[0]
-    @origin_x = @board.legal_pieces[0].origin[1]
-  end
-
-  # rework this trash:
-  def non_pawn_procedure
-    @board.find_legal_pieces(@turn_color, lookup_piece, @dest_y, @dest_x)
-    case @board.legal_pieces.length
-    when 1
-      retrieve_origin_from_piece
-      @board.legal_pieces = []
-
-      # call recursive function here?
-    when > 1
-      puts 'More than one such piece can more there. Enter coordinate of piece and coordinate of destination like so: \'a1a4\''
-      @board.legal_pieces = []
-      get_input_until_valid
-    else
-      puts 'No such piece can move there. Try again.'
-      @board.legal_pieces = []
-      get_input_until_valid
+  def find_pawn_origin(turn_color, dest_y, dest_x)
+    @state.each do |row|
+      piece = row[dest_x]
+      if !piece.nil? && piece.color == turn_color && piece.instance_of?(Pawn)
+        piece.set_destination(dest_y, dest_x)
+        @legal_pieces << piece if piece.legal_move?(self)
+        piece.destination = []
+      end
     end
   end
 
-  def lookup_piece
-    @letters[@input[0]]
-  end
-
-
-end
-
-class Game
-  include InputHandler
-
-  def initialize
-    @board = Board.new()
-    @turn_color = 'white'
-    @game_status = 'ongoing'
-    @input = ''
-    @letters = { 'n' => 'kni', 'b' => 'bis', 'r' => 'roo', 'q' => 'que', 'k' => 'kin' }
-  end
-
-  def get_input_until_valid
-    until input_valid? do
-      puts 'input move'
-      get_input
-      puts 'invalid input, try again' unless input_valid?
+  def check_if_legal(turn_color, origin_y, origin_x, dest_y, dest_x)
+    piece = @state[origin_y][origin_x]
+    if !piece.nil? && piece.color == turn_color
+      piece.set_destination(dest_y, dest_x)
+      @legal_pieces << piece if piece.legal_move?(self)
     end
   end
 
-
-  def play_game
-    @board.setup_board
-    @board.full_print_sequence(@turn_color)
-
-    # another function should call here -- it will be used recursively
-
-    
-
-
-
-
-
-
-
-
-    get_input_until_valid
-    retrieve_dest
-
-    # @board.find_legal_pieces(@turn_color, lookup_piece, @dest_y, @dest_x)
-
-    # retrieve_origin_from_piece if @board.legal_pieces.length == 1
-
-    @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x)
-    @board.full_print_sequence(@turn_color)
+  def basic_print
+    @state.each do |row|
+      row.each do |square|
+        pp square
+      end
+    end
   end
-
 end
 
 class Piece
@@ -386,12 +295,20 @@ class Piece
     board.horizontal_clear?(@origin, @destination)
   end
 
+  def results_in_king_safety?(board, y = @destination[0], x = @destination[1])
+    check_test_board = Board.new
+    check_test_board.state = Marshal.load(Marshal.dump(board.state))
+    check_test_board.state[@origin[0]][@origin[1]] = nil
+    check_test_board.state[y][x] = self.dup
+    check_test_board.king_is_safe?(@color)
+  end
+
 end
 
 class Knight < Piece
   def legal_move?(board)
     find_distances
-    [@distance_y, @distance_x].sort == [1, 2] && no_friendly_at_dest?(board)
+    [@distance_y, @distance_x].sort == [1, 2] && no_friendly_at_dest?(board) && results_in_king_safety?(board)
   end
 end
 
@@ -499,34 +416,156 @@ class Pawn < Piece
   end
 end
 
-def basic_print(board)
-  board.state.each do |row|
-    row.each do |entry|
-      print entry.nil? ? "nil, " : "#{entry.piece_name}, "
-    end
-    puts "\n"
+module InputHandler
+  # input will be origin square -- destination square if previous input ambiguous
+  # otherwise, it will be piece to dest square
+
+  def draw?
+    @input == 'draw'
   end
-  puts ''
+
+  def long_c?
+    @input == 'o-o-o'
+  end
+
+  def short_c?
+    @input == 'o-o'
+  end
+
+  def resign?
+    @input == 'resign'
+  end
+
+  def algebraic?(index_1, index_2)
+    @input[index_1].between?('a', 'h') && @input[index_2].between?('1', '8')
+  end
+
+  def pawn_push?
+    @input.length == 2 && algebraic?(-2, -1)
+  end
+
+  def non_pawn?
+    @input.length == 3 && @letters.key?(@input[0]) && algebraic?(-2, -1)
+  end
+
+  def unambiguous?
+    @input.length == 4 && algebraic?(0, 1) && algebraic?(-2, -1)
+  end
+
+  def input_valid?
+    non_pawn? || pawn_push? || short_c? || long_c? || draw? || resign? || unambiguous?
+  end
+
+  def get_input
+    @input = gets.chomp.downcase
+  end
+
+  def retrieve_dest
+    @dest_y = 8 - @input[-1].to_i
+    @dest_x = ('a'..'h').to_a.index @input[-2]
+  end
+
+  def retrieve_unambiguous_origin
+    @origin_y = 8 - @input[1].to_i
+    @origin_x = ('a'..'h').to_a.index @input[0]
+  end
+
+  def retrieve_origin_from_piece
+    @origin_y = @board.legal_pieces[0].origin[0]
+    @origin_x = @board.legal_pieces[0].origin[1]
+  end
+
+  def lookup_piece
+    @letters[@input[0]]
+  end
 end
 
-# board = Board.new
-# board.init_display
-# board.setup_board
-# board.fill_board
+class Game
+  include InputHandler
 
+  def initialize
+    @board = Board.new()
+    @turn_color = ['white', 'black']
+    @game_status = 'ongoing'
+    @input = ''
+    @letters = { 'n' => 'kni', 'b' => 'bis', 'r' => 'roo', 'q' => 'que', 'k' => 'kin' }
+  end
 
-# board.print_board
-# board.print_board('black')
+  def get_input_until_valid
+    loop do
+      puts "#{@turn_color[0].capitalize}, enter your move."
+      get_input
+      break if input_valid?
+      puts 'Invalid input. Try again.'
+    end
+  end
 
+  def recursive_sequence
+    get_input_until_valid
+    retrieve_dest
+    get_origin
+    @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x)
+    @board.full_print_sequence('white')
+    @turn_color.reverse!
+    recursive_sequence
+  end
 
-# # # # # # # #
+  def get_origin_from_piece_letter
+    @board.find_legal_pieces(@turn_color[0], lookup_piece, @dest_y, @dest_x)
+    legal_count = @board.legal_pieces.length
+    if legal_count.zero?
+      puts 'Illegal move.'
+      recursive_sequence
+    elsif legal_count > 1
+      puts "More than one such piece can move there. State origin square and destination square, e.g. 'a1a4'."
+      recursive_sequence
+    else
+      retrieve_origin_from_piece
+      @board.legal_pieces = []
+    end
+  end
 
-# game = Game.new
-# 25.times do
-#   game.get_input
-#   puts game.input_valid? ? 'valid' : 'invalid'
-#    puts game.lookup_piece
-# end
+  def get_origin_for_pawn_push
+    @board.find_pawn_origin(@turn_color[0], @dest_y, @dest_x)
+    legal_count = @board.legal_pieces.length
+    if legal_count.zero?
+      puts 'Illegal move.'
+      recursive_sequence
+    else
+      retrieve_origin_from_piece
+      @board.legal_pieces = []
+    end
+  end
+
+  def check_legality
+    retrieve_unambiguous_origin
+    @board.check_if_legal(@turn_color[0], @origin_y, @origin_x, @dest_y, @dest_x)
+    legal_count = @board.legal_pieces.length
+    if legal_count.zero?
+      puts 'Illegal move.'
+      recursive_sequence
+    else
+      @board.legal_pieces = []
+    end
+  end
+
+  def get_origin
+    if pawn_push?
+      get_origin_for_pawn_push
+    elsif unambiguous?
+      check_legality
+    elsif non_pawn?
+      get_origin_from_piece_letter
+    end
+  end
+
+  def play_game
+    @board.setup_board
+    @board.full_print_sequence(@turn_color[0])
+    recursive_sequence
+  end
+
+end
 
 game = Game.new
 game.play_game
