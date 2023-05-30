@@ -3,12 +3,15 @@ require_relative '../lib/oop_version.rb'
 describe Knight do
   describe '#legal_move?' do
     subject(:legal_knight) { described_class.new('kn1', 'black') }
+    let(:king) { King.new('kng', 'black') }
     let(:board) { Board.new }
 
     context 'when knight is at top left corner' do
       before do
         board.state[0][0] = legal_knight
         legal_knight.set_origin(board.state)
+        board.state[0][4] = king
+        king.set_origin(board.state)
       end
 
       context 'when  destination is 2 right and 1 down' do
@@ -30,31 +33,33 @@ describe Knight do
       before do
         board.state[4][2] = legal_knight
         legal_knight.set_origin(board.state)
+        board.state[0][4] = king
+        king.set_origin(board.state)
       end
 
       context 'when destination is 1 left and 2 down' do
-        it'returns true' do
+        it 'returns true' do
           legal_knight.set_destination(6, 1)
           expect(legal_knight.legal_move?(board)).to be true
         end
       end
 
       context 'when destination is 1 left and 2 up' do
-        it'returns true' do
+        it 'returns true' do
           legal_knight.set_destination(2, 1)
           expect(legal_knight.legal_move?(board)).to be true
         end
       end
 
       context 'when destination is same as origin' do
-        it'returns false' do
+        it 'returns false' do
           legal_knight.set_destination(4, 2)
           expect(legal_knight.legal_move?(board)).to be false
         end
       end
 
       context 'when destination is occupied by friendly piece' do
-        it'returns false' do
+        it 'returns false' do
           board.state[6][1] = described_class.new('kn2', 'black')
           legal_knight.set_destination(6, 1)
           expect(legal_knight.legal_move?(board)).to be false
@@ -62,20 +67,12 @@ describe Knight do
       end
 
       context 'when destination is occupied by opponent piece' do
-        it'returns true' do
+        it 'returns true' do
           board.state[6][1] = described_class.new('kn2', 'white')
           legal_knight.set_destination(6, 1)
           expect(legal_knight.legal_move?(board)).to be true
         end
       end
-    end
-
-    context 'when knight is at 2, 7' do
-      before do
-        board.state[2][7] = legal_knight
-        legal_knight.set_origin(board.state)
-      end
-
     end
   end
 end
@@ -565,6 +562,7 @@ end
 describe King do
   subject(:legal_king) { described_class.new('kng', 'black') }
   let(:board) { Board.new }
+  let(:white_king) { King.new('kng', 'white') }
 
   describe '#legal_move?' do
     context 'when king is at 3, 3' do
@@ -623,6 +621,8 @@ describe King do
         context 'when destination threatened by knight' do
           it 'returns false' do
             board.state[1][5] = Knight.new('knt', 'white')
+            board.state[0][0] = white_king
+            white_king.set_origin(board.state)
             expect(legal_king.legal_move?(board)).to be false
           end
         end
@@ -977,20 +977,21 @@ describe Board do
 
   describe '#castle' do
     context 'when kingside castling with White' do
-      let(:king) { King.new('Kin', 'white')}
+      let(:white_king) { King.new('Kin', 'white')}
+      let(:black_king) { King.new('kin', 'black')}
       let(:rook) { Rook.new('Roo', 'white') }
 
       before do
-        board.state[7][4] = king
+        board.state[7][4] = white_king
         board.state[7][7] = rook
-        king.set_origin(board.state)
+        white_king.set_origin(board.state)
         rook.set_origin(board.state)        
       end
 
       context 'when path is clear' do
         it 'castles kingside' do
-          expect { board.castle(king, rook, 1) }
-            .to change { board.state[7][6] }.to(king)
+          expect { board.castle(white_king, rook, 1) }
+            .to change { board.state[7][6] }.to(white_king)
             .and change { board.state[7][5] }.to(rook)
             .and change { board.state[7][4] }.from(be_truthy)
             .and change { board.state[7][7] }.from(be_truthy)
@@ -1000,7 +1001,7 @@ describe Board do
       context 'when path is blocked on 7, 6' do
         it 'does not castle' do
           board.state[7][6] = Knight.new('Kni', 'white')
-          expect { board.castle(king, rook, 1) }
+          expect { board.castle(white_king, rook, 1) }
           .not_to change { board.state }
         end
       end
@@ -1008,24 +1009,26 @@ describe Board do
       context 'when path is blocked on 7, 5' do
         it 'does not castle' do
           board.state[7][5] = Knight.new('Kni', 'white')
-          expect { board.castle(king, rook, 1) }
+          expect { board.castle(white_king, rook, 1) }
           .not_to change { board.state }
         end
       end
 
-      context 'when king path is under attack' do
+      context 'when white_king path is under attack' do
         it 'does not castle' do
+          board.state[0][0] = black_king
+          black_king.set_origin(board.state)
           board.state[5][7] = Knight.new('kni', 'black')
-          expect { board.castle(king, rook, 1) }
+          expect { board.castle(white_king, rook, 1) }
           .not_to change { board.state }
         end
       end
 
-      context 'when king has already moved' do
+      context 'when white_king has already moved' do
         it 'does not castle' do
           board.make_move(7, 4, 7, 3)
           board.make_move(7, 3, 7, 4)
-          expect { board.castle(king, rook, 1) }
+          expect { board.castle(white_king, rook, 1) }
           .not_to change { board.state }
         end
       end
@@ -1034,27 +1037,27 @@ describe Board do
         it 'does not castle' do
           board.make_move(7, 7, 1, 7)
           board.make_move(1, 7, 7, 7)
-          expect { board.castle(king, rook, 1) }
+          expect { board.castle(white_king, rook, 1) }
           .not_to change { board.state }
         end
       end
     end
 
     context 'when queenside castling with White' do
-      let(:king) { King.new('Kin', 'white')}
+      let(:white_king) { King.new('Kin', 'white')}
       let(:rook) { Rook.new('Roo', 'white') }
 
       before do
-        board.state[7][4] = king
+        board.state[7][4] = white_king
         board.state[7][0] = rook
-        king.set_origin(board.state)
+        white_king.set_origin(board.state)
         rook.set_origin(board.state)        
       end
 
       context 'when path is clear' do
         it 'castles queenside' do
-          expect { board.castle(king, rook, -1) }
-            .to change { board.state[7][2] }.to(king)
+          expect { board.castle(white_king, rook, -1) }
+            .to change { board.state[7][2] }.to(white_king)
             .and change { board.state[7][3] }.to(rook)
             .and change { board.state[7][4] }.from(be_truthy)
             .and change { board.state[7][0] }.from(be_truthy)
@@ -1064,7 +1067,7 @@ describe Board do
       context 'when path is blocked on 7, 1' do
         it 'does not castle' do
           board.state[7][1] = Knight.new('Kni', 'white')
-          expect { board.castle(king, rook, -1) }
+          expect { board.castle(white_king, rook, -1) }
           .not_to change { board.state }
         end
       end
@@ -1072,7 +1075,7 @@ describe Board do
       context 'when path is blocked on 7, 2' do
         it 'does not castle' do
           board.state[7][2] = Knight.new('Kni', 'white')
-          expect { board.castle(king, rook, -1) }
+          expect { board.castle(white_king, rook, -1) }
           .not_to change { board.state }
         end
       end
@@ -1080,24 +1083,24 @@ describe Board do
       context 'when path is blocked on 7, 3' do
         it 'does not castle' do
           board.state[7][3] = Knight.new('Kni', 'white')
-          expect { board.castle(king, rook, -1) }
+          expect { board.castle(white_king, rook, -1) }
           .not_to change { board.state }
         end
       end
 
-      context 'when king path is under attack' do
+      context 'when white_king path is under attack' do
         it 'does not castle' do
           board.state[6][1] = Bishop.new('bis', 'black')
-          expect { board.castle(king, rook, -1) }
+          expect { board.castle(white_king, rook, -1) }
           .not_to change { board.state }
         end
       end
 
-      context 'when king has already moved' do
+      context 'when white_king has already moved' do
         it 'does not castle' do
           board.make_move(7, 4, 7, 5)
           board.make_move(7, 5, 7, 4)
-          expect { board.castle(king, rook, -1) }
+          expect { board.castle(white_king, rook, -1) }
           .not_to change { board.state }
         end
       end
@@ -1106,27 +1109,28 @@ describe Board do
         it 'does not castle' do
           board.make_move(7, 0, 7, 1)
           board.make_move(7, 1, 7, 0)
-          expect { board.castle(king, rook, -1) }
+          expect { board.castle(white_king, rook, -1) }
           .not_to change { board.state }
         end
       end
     end
 
     context 'when kingside castling with Black' do
-      let(:king) { King.new('kin', 'black')}
+      let(:black_king) { King.new('kin', 'black')}
+      let(:white_king) { King.new('Kin', 'white')}
       let(:rook) { Rook.new('roo', 'black') }
 
       before do
-        board.state[0][4] = king
+        board.state[0][4] = black_king
         board.state[0][7] = rook
-        king.set_origin(board.state)
+        black_king.set_origin(board.state)
         rook.set_origin(board.state)        
       end
 
       context 'when path is clear' do
         it 'castles kingside' do
-          expect { board.castle(king, rook, 1) }
-            .to change { board.state[0][6] }.to(king)
+          expect { board.castle(black_king, rook, 1) }
+            .to change { board.state[0][6] }.to(black_king)
             .and change { board.state[0][5] }.to(rook)
             .and change { board.state[0][4] }.from(be_truthy)
             .and change { board.state[0][7] }.from(be_truthy)
@@ -1136,7 +1140,7 @@ describe Board do
       context 'when path is blocked on 0, 6' do
         it 'does not castle' do
           board.state[0][6] = Bishop.new('bis', 'black')
-          expect { board.castle(king, rook, 1) }
+          expect { board.castle(black_king, rook, 1) }
           .not_to change { board.state }
         end
       end
@@ -1144,7 +1148,7 @@ describe Board do
       context 'when path is blocked on 0, 5' do
         it 'does not castle' do
           board.state[0][5] = Knight.new('kni', 'black')
-          expect { board.castle(king, rook, 1) }
+          expect { board.castle(black_king, rook, 1) }
           .not_to change { board.state }
         end
       end
@@ -1152,7 +1156,9 @@ describe Board do
       context 'when king path is under attack' do
         it 'does not castle' do
           board.state[2][7] = Knight.new('kni', 'white')
-          expect { board.castle(king, rook, 1) }
+          board.state[0][0] = white_king
+          white_king.set_origin(board.state)
+          expect { board.castle(black_king, rook, 1) }
           .not_to change { board.state }
         end
       end
@@ -1161,7 +1167,7 @@ describe Board do
         it 'does not castle' do
           board.make_move(0, 4, 0, 3)
           board.make_move(0, 3, 0, 4)
-          expect { board.castle(king, rook, 1) }
+          expect { board.castle(black_king, rook, 1) }
           .not_to change { board.state }
         end
       end
@@ -1170,27 +1176,27 @@ describe Board do
         it 'does not castle' do
           board.make_move(0, 7, 1, 7)
           board.make_move(1, 7, 0, 7)
-          expect { board.castle(king, rook, 1) }
+          expect { board.castle(black_king, rook, 1) }
           .not_to change { board.state }
         end
       end
     end
 
     context 'when queenside castling with Black' do
-      let(:king) { King.new('kin', 'black')}
+      let(:black_king) { King.new('kin', 'black')}
       let(:rook) { Rook.new('roo', 'black') }
 
       before do
-        board.state[0][4] = king
+        board.state[0][4] = black_king
         board.state[0][0] = rook
-        king.set_origin(board.state)
+        black_king.set_origin(board.state)
         rook.set_origin(board.state)        
       end
 
       context 'when path is clear' do
         it 'castles queenside' do
-          expect { board.castle(king, rook, -1) }
-            .to change { board.state[0][2] }.to(king)
+          expect { board.castle(black_king, rook, -1) }
+            .to change { board.state[0][2] }.to(black_king)
             .and change { board.state[0][3] }.to(rook)
             .and change { board.state[0][4] }.from(be_truthy)
             .and change { board.state[0][0] }.from(be_truthy)
@@ -1200,7 +1206,7 @@ describe Board do
       context 'when path is blocked on 0, 1' do
         it 'does not castle' do
           board.state[0][1] = Knight.new('Kni', 'black')
-          expect { board.castle(king, rook, -1) }
+          expect { board.castle(black_king, rook, -1) }
           .not_to change { board.state }
         end
       end
@@ -1208,7 +1214,7 @@ describe Board do
       context 'when path is blocked on 0, 2' do
         it 'does not castle' do
           board.state[0][2] = Knight.new('Kni', 'black')
-          expect { board.castle(king, rook, -1) }
+          expect { board.castle(black_king, rook, -1) }
           .not_to change { board.state }
         end
       end
@@ -1216,7 +1222,7 @@ describe Board do
       context 'when path is blocked on 0, 1' do
         it 'does not castle' do
           board.state[0][3] = Knight.new('Kni', 'black')
-          expect { board.castle(king, rook, -1) }
+          expect { board.castle(black_king, rook, -1) }
           .not_to change { board.state }
         end
       end
@@ -1224,7 +1230,7 @@ describe Board do
       context 'when king path is under attack' do
         it 'does not castle' do
           board.state[1][1] = Bishop.new('bis', 'white')
-          expect { board.castle(king, rook, -1) }
+          expect { board.castle(black_king, rook, -1) }
           .not_to change { board.state }
         end
       end
@@ -1233,7 +1239,7 @@ describe Board do
         it 'does not castle' do
           board.make_move(0, 4, 0, 5)
           board.make_move(0, 5, 0, 4)
-          expect { board.castle(king, rook, -1) }
+          expect { board.castle(black_king, rook, -1) }
           .not_to change { board.state }
         end
       end
@@ -1242,48 +1248,10 @@ describe Board do
         it 'does not castle' do
           board.make_move(0, 0, 0, 1)
           board.make_move(0, 1, 0, 0)
-          expect { board.castle(king, rook, -1) }
+          expect { board.castle(black_king, rook, -1) }
           .not_to change { board.state }
         end
       end
     end
   end
-
-  # describe '#count_legal_pieces' do
-  #   let(:game) { Game.new }
-  #   let(:piece) { game.lookup_piece }
-  #   let(:dest_y) { game.instance_variable_get(:@dest_y) }
-  #   let(:dest_x) { game.instance_variable_get(:@dest_x) }
-  #   let(:turn_color) { game.instance_variable_get(:@turn_color) }
-
-  #   before do
-  #     allow(game).to receive(:gets).and_return('nf3')
-  #     game.get_input
-  #     game.retrieve_dest
-  #     board.setup_board
-  #   end
-
-  #   context 'when no pieces can move to destination' do
-  #     it 'returns 0' do
-  #       board.state[7][6] = nil
-  #       expect(board.count_legal_pieces(turn_color, piece, dest_y, dest_x)).to eq(0)
-  #     end
-  #   end
-
-  #   context 'when one piece can move to destination' do
-  #     it 'returns 1' do
-  #       expect(board.count_legal_pieces(turn_color, piece, dest_y, dest_x)).to eq(1)
-  #     end
-  #   end
-
-  #   context 'when two pieces can move to destination' do
-  #     it 'returns 2' do
-  #       board.state[4][7] = board.state[7][1]
-  #       board.state[7][1] = nil
-  #       board.state[4][7].set_origin(board.state)
-  #       expect(board.count_legal_pieces(turn_color, piece, dest_y, dest_x)).to eq(2)
-  #     end
-  #   end
-  # end
-
 end
