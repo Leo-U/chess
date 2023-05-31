@@ -63,13 +63,15 @@ end
 
 class Board
   include Display
-  attr_reader :pieces, :board
+  attr_reader :pieces, :board, :white_has_castled, :black_has_castled
   attr_accessor :legal_pieces, :state
 
   def initialize
     @state =  8.times.map { 8.times.map { nil } }
     @pieces = ['Rook', 'Knight', 'Bishop', 'Queen', 'King', 'Bishop', 'Knight', 'Rook']
     @legal_pieces = []
+    @white_has_castled = false
+    @black_has_castled = false
   end
 
   def add_piece(piece, y, x)
@@ -134,6 +136,7 @@ class Board
     move_piece_if_legal(piece, origin_y, origin_x, dest_y, dest_x)
     reset_piece_state(piece)
     piece.set_moved_two if piece.instance_of?(Pawn) && (origin_y - dest_y).abs == 2
+    piece.promote(self) if piece.instance_of?(Pawn)
   end
 
   def piece_at?(color, dest_y, dest_x, side)
@@ -209,8 +212,9 @@ class Board
       add_piece(king, y, king_dest_x)
       add_piece(rook, y, rook_dest_x)
       @state[y][king_x], @state[y][rook_x] = nil, nil
+      king.color == 'white' ? @white_has_castled = true : @black_has_castled = true
+      king.unmoved, rook.unmoved = false, false
     end
-    king.unmoved, rook.unmoved = false, false
   end
 
   def find_legal_pieces(turn_color, piece_name, dest_y, dest_x)
@@ -244,13 +248,19 @@ class Board
     end
   end
 
-  def basic_print
+  def print_for_rspec
     @state.each do |row|
-      row.each do |square|
-        pp square
+      row.each do |piece|
+        if piece.nil?
+          print '--- '
+        else
+          print piece.piece_name + ' '
+        end
       end
+      puts
     end
   end
+  
 end
 
 class Piece
@@ -295,11 +305,13 @@ class Piece
     board.horizontal_clear?(@origin, @destination)
   end
 
-  def results_in_king_safety?(board, y = @destination[0], x = @destination[1])
+  def results_in_king_safety?(board)
+    dest_y = @destination[0]
+    dest_x = @destination[1]
     check_test_board = Board.new
     check_test_board.state = Marshal.load(Marshal.dump(board.state))
     check_test_board.state[@origin[0]][@origin[1]] = nil
-    check_test_board.state[y][x] = self.dup
+    check_test_board.state[dest_y][dest_x] = self.dup
     check_test_board.king_is_safe?(@color)
   end
 
@@ -315,14 +327,14 @@ end
 class Bishop < Piece
   def legal_move?(board)
     find_distances
-    @distance_y == @distance_x && no_friendly_at_dest?(board) && diagonal_clear?(board)
+    @distance_y == @distance_x && no_friendly_at_dest?(board) && diagonal_clear?(board) && results_in_king_safety?(board)
   end
 end
 
 class Rook < Piece
   def legal_move?(board)
     find_distances
-    (@distance_y.zero? || @distance_x.zero?) && no_friendly_at_dest?(board) && horizontal_clear?(board)
+    (@distance_y.zero? || @distance_x.zero?) && no_friendly_at_dest?(board) && horizontal_clear?(board) && results_in_king_safety?(board) 
   end
 end
 
@@ -333,18 +345,30 @@ class Queen < Piece
 
   def legal_move?(board)
     find_distances
-    no_friendly_at_dest?(board) && queen_path_clear?(board) && (@distance_y == @distance_x || (@distance_y.zero? || @distance_x.zero?))
+    no_friendly_at_dest?(board) && queen_path_clear?(board) && (@distance_y == @distance_x || (@distance_y.zero? || @distance_x.zero?)) && results_in_king_safety?(board)
   end
 end
 
 class King < Piece
-  def dest_safe?(board)
+  
+  def empty_square_safe?(board)
     board.square_safe?(self, @destination[0], @destination[1])
+  end
+
+  def capture_safe?(board, y = @destination[0], x = @destination[1])
+    if board.state[y][x] && board.state[y][x].color != self.color
+      check_board = Board.new
+      check_board.state = Marshal.load(Marshal.dump(board.state))
+      check_board.state[y][x] = nil
+      empty_square_safe?(check_board)
+    else
+      true
+    end
   end
 
   def legal_move?(board)
     find_distances
-    no_friendly_at_dest?(board) && @distance_y.between?(0, 1) && @distance_x.between?(0, 1) && dest_safe?(board)
+    no_friendly_at_dest?(board) && @distance_y.between?(0, 1) && @distance_x.between?(0, 1) && empty_square_safe?(board) && capture_safe?(board)
   end
 end
 
@@ -395,12 +419,13 @@ class Pawn < Piece
 
   def legal_move?(board)
     set_direction
-    no_opponent_in_front?(board) && no_friendly_at_dest?(board) && one_or_two_steps?(board) && x_in_bounds?(board) || enemy_at_attackable?(board)
+    (no_opponent_in_front?(board) && no_friendly_at_dest?(board) && one_or_two_steps?(board) && x_in_bounds?(board) || enemy_at_attackable?(board)) && results_in_king_safety?(board)
   end
 
   def prompt_loop(board, piece_name = nil)
-    until board.pieces.include?(piece_name) do
-      puts 'Enter piece name'
+    until board.pieces.reject {|el| el == 'King'}.include?(piece_name) do
+      board.full_print_sequence('white')
+      puts 'Enter name of new piece for pawn promotion.'
       piece_name = gets.chomp.downcase.capitalize
     end
     piece_name
@@ -417,9 +442,6 @@ class Pawn < Piece
 end
 
 module InputHandler
-  # input will be origin square -- destination square if previous input ambiguous
-  # otherwise, it will be piece to dest square
-
   def draw?
     @input == 'draw'
   end
@@ -500,13 +522,22 @@ class Game
     end
   end
 
+  def continue_sequence
+    @board.full_print_sequence('white')
+    @turn_color.reverse!
+    recursive_sequence
+  end
+
   def recursive_sequence
     get_input_until_valid
     retrieve_dest
-    get_origin
+    branch
     @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x)
-    @board.full_print_sequence('white')
-    @turn_color.reverse!
+    continue_sequence
+  end
+
+  def abort
+    puts 'Illegal move.'
     recursive_sequence
   end
 
@@ -514,8 +545,7 @@ class Game
     @board.find_legal_pieces(@turn_color[0], lookup_piece, @dest_y, @dest_x)
     legal_count = @board.legal_pieces.length
     if legal_count.zero?
-      puts 'Illegal move.'
-      recursive_sequence
+      abort
     elsif legal_count > 1
       puts "More than one such piece can move there. State origin square and destination square, e.g. 'a1a4'."
       recursive_sequence
@@ -529,8 +559,7 @@ class Game
     @board.find_pawn_origin(@turn_color[0], @dest_y, @dest_x)
     legal_count = @board.legal_pieces.length
     if legal_count.zero?
-      puts 'Illegal move.'
-      recursive_sequence
+      abort
     else
       retrieve_origin_from_piece
       @board.legal_pieces = []
@@ -542,20 +571,37 @@ class Game
     @board.check_if_legal(@turn_color[0], @origin_y, @origin_x, @dest_y, @dest_x)
     legal_count = @board.legal_pieces.length
     if legal_count.zero?
-      puts 'Illegal move.'
-      recursive_sequence
+      abort
     else
       @board.legal_pieces = []
     end
   end
 
-  def get_origin
+  def try_castle(dir)
+    king = @turn_color[0] == 'white' ? @board.state[7][4] : @board.state[0][4]
+    if dir == 1
+      rook = @turn_color[0] == 'white' ? @board.state[7][7] : @board.state[0][7]
+    else
+      rook = @turn_color[0] == 'white' ? @board.state[7][0] : @board.state[0][0]
+    end
+    @board.castle(king, rook, dir)
+    has_castled = @turn_color[0] == 'white' ? @board.white_has_castled : @board.black_has_castled
+    abort unless has_castled
+  end
+
+  def branch
     if pawn_push?
       get_origin_for_pawn_push
     elsif unambiguous?
       check_legality
     elsif non_pawn?
       get_origin_from_piece_letter
+    elsif short_c?
+      try_castle(1)
+      continue_sequence
+    elsif long_c?
+      try_castle(-1)
+      continue_sequence
     end
   end
 
