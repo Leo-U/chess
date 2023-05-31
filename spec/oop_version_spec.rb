@@ -81,10 +81,12 @@ describe Bishop do
   describe '#legal_move?' do
     subject(:legal_bishop) { described_class.new('bp1', 'black') }
     let(:board) { Board.new }
+    let(:black_king) { King.new('kng', 'black') }
 
     context 'when bishop is at 0, 0' do
       before do
         board.state[0][0] = legal_bishop
+        board.state[7][7] = black_king
         legal_bishop.set_origin(board.state)
       end
 
@@ -106,6 +108,7 @@ describe Bishop do
     context 'when bishop is at 0, 7' do
       before do
         board.state[0][7] = legal_bishop
+        board.state[7][7] = black_king
         legal_bishop.set_origin(board.state)
       end
 
@@ -119,6 +122,7 @@ describe Bishop do
 
     context 'when bishop is at 7, 3' do
       before do
+        board.state[7][7] = black_king
         board.state[7][3] = legal_bishop
         legal_bishop.set_origin(board.state)
       end
@@ -144,6 +148,7 @@ describe Bishop do
     context 'when bishop is at 3, 3' do
       before do
         board.state[3][3] = legal_bishop
+        board.state[7][7] = black_king
         legal_bishop.set_origin(board.state)
       end
 
@@ -263,11 +268,13 @@ end
 describe Rook do
   describe '#legal_move' do
     subject(:legal_rook) { described_class.new('rk1', 'black') }
+    let(:black_king) { King.new('kin', 'black') }
     let(:board) { Board.new }
 
     context 'when rook is at 0, 0' do
       before do
         board.state[0][0] = legal_rook
+        board.state[7][7] = black_king
         legal_rook.set_origin(board.state)
       end
 
@@ -434,12 +441,14 @@ end
 
 describe Queen do
   subject(:legal_queen) { described_class.new('qn1', 'black') }
+  let(:black_king) { King.new('kin', 'black') }
   let(:board) { Board.new }
 
   describe '#legal_move?' do
     context 'when queen is at 3, 3' do
       before do
         board.state[3][3] = legal_queen
+        board.state[0][0] = black_king
         legal_queen.set_origin(board.state)
       end
 
@@ -603,7 +612,10 @@ describe King do
       end
       
       context 'when destination is 3, 4' do
-        before { legal_king.set_destination(3, 4) }
+        before do
+          legal_king.set_destination(3, 4)
+          board.state[7][0] = white_king
+        end
 
         context 'when unobstructed' do
           it 'returns true' do
@@ -613,6 +625,7 @@ describe King do
 
         context 'when destination threatened by bishop' do
           it 'returns false' do
+            board.state[0][0] = white_king
             board.state[0][7] = Bishop.new('bsp', 'white')
             expect(legal_king.legal_move?(board)).to be false
           end
@@ -622,14 +635,13 @@ describe King do
           it 'returns false' do
             board.state[1][5] = Knight.new('knt', 'white')
             board.state[0][0] = white_king
-            white_king.set_origin(board.state)
             expect(legal_king.legal_move?(board)).to be false
           end
         end
 
         context 'when destination threatened by rook' do
           it 'returns false' do
-            board.state[0][4] = Rook.new('rk1', 'white')
+            board.state[0][4] = Rook.new('Rk1', 'white')
             expect(legal_king.legal_move?(board)).to be false
           end
         end
@@ -675,6 +687,8 @@ end
 
 describe Pawn do
   let(:board) { Board.new }
+  let(:black_king) { King.new('kin', 'black') }
+  let(:white_king) { King.new('Kin', 'white') }
 
   describe '#legal_move' do
     context 'when black pawn is at 1, 4' do
@@ -682,6 +696,8 @@ describe Pawn do
 
       before do
         board.state[1][4] = legal_pawn_black
+        board.state[0][0] = black_king
+        black_king.set_origin(board.state)
         legal_pawn_black.set_origin(board.state)
       end
 
@@ -761,6 +777,8 @@ describe Pawn do
         it 'returns true' do
           white_pawn = described_class.new('Pwn', 'white')
           board.state[3][5] = white_pawn
+          board.state[7][7] = white_king
+          white_king.set_origin(board.state)
           white_pawn.set_origin(board.state)
           board.make_move(1, 4, 3, 4)
           white_pawn.set_destination(2, 4)
@@ -770,10 +788,11 @@ describe Pawn do
     end
 
     context 'when white pawn is at 6, 3' do
-      subject(:legal_pawn_white) { described_class.new('pwn', 'white') }
+      subject(:legal_pawn_white) { described_class.new('Pwn', 'white') }
 
       before do
         board.state[6][3] = legal_pawn_white
+        board.state[0][0] = white_king
         legal_pawn_white.set_origin(board.state)
       end
 
@@ -832,6 +851,8 @@ end
 
 describe Board do
   let(:board) { Board.new }
+  let(:black_king) { King.new('kin', 'black') }
+  let(:white_king) { King.new('Kin', 'white') }
 
   describe '#reset_piece_state' do
     context 'when a pawn has @moved_two == true' do
@@ -849,6 +870,10 @@ describe Board do
       subject(:friendly_black_pawn) { Pawn.new('pwn', 'black') }
 
       before do
+        board.state[0][0] = black_king
+        board.state[0][7] = white_king
+        black_king.set_origin(board.state)
+        white_king.set_origin(board.state)
         board.state[6][2] = en_passantable_white_pawn
         board.state[4][1] = friendly_black_pawn
       end
@@ -873,11 +898,13 @@ describe Board do
 
   describe '#each_square_safe?' do
     context 'when kingside castling' do
-      let(:king) { King.new('Kin', 'white') }
+      let(:white_king) { King.new('Kin', 'white') }
+      let(:black_king) { King.new('kin', 'black') }
       let(:rook) { Rook.new('Roo', 'white') }
       
       before do
-        board.state[7][4] = king
+        board.state[7][4] = white_king
+        board.state[0][0] = black_king
         board.state[7][7] = rook
       end
 
@@ -886,49 +913,51 @@ describe Board do
           board.state[0][4] = Queen.new('que', 'black')
           board.state[0][5] = Rook.new('roo', 'black')
           board.state[0][6] = Rook.new('roo', 'black')
-          king.set_origin(board.state)
-          expect(board.each_square_safe?(king, 1)).to be false
+          white_king.set_origin(board.state)
+          expect(board.each_square_safe?(white_king, 1)).to be false
         end
       end
       
-      context 'when king square is under attack(check)' do
+      context 'when white_king square is under attack(check)' do
         it 'returns false' do
           board.state[0][4] = Queen.new('que', 'black')
-          king.set_origin(board.state)
-          expect(board.each_square_safe?(king, 1)).to be false
+          white_king.set_origin(board.state)
+          expect(board.each_square_safe?(white_king, 1)).to be false
         end
       end
 
       context 'when middle square is under attack' do
         it 'returns false' do
           board.state[0][5] = Rook.new('que', 'black')
-          king.set_origin(board.state)
-          expect(board.each_square_safe?(king, 1)).to be false
+          white_king.set_origin(board.state)
+          expect(board.each_square_safe?(white_king, 1)).to be false
         end
       end
 
       context 'when target square is under attack' do
         it 'returns false' do
           board.state[0][6] = Rook.new('que', 'black')
-          king.set_origin(board.state)
-          expect(board.each_square_safe?(king, 1)).to be false
+          white_king.set_origin(board.state)
+          expect(board.each_square_safe?(white_king, 1)).to be false
         end
       end
       
       context 'when no squares are under attack' do
         it 'returns true' do
-          king.set_origin(board.state)
-          expect(board.each_square_safe?(king, 1)).to be true
+          white_king.set_origin(board.state)
+          expect(board.each_square_safe?(white_king, 1)).to be true
         end
       end
     end
     
     context 'when queenside castling' do
-      let(:king) { King.new('Kin', 'white') }
+      let(:white_king) { King.new('Kin', 'white') }
+      let(:black_king) { King.new('kin', 'black') }
       let(:rook) { Rook.new('Roo', 'white') }
 
       before do
-        board.state[0][4] = king
+        board.state[0][4] = white_king
+        board.state[7][7] = black_king
         board.state[0][0] = rook
       end
       
@@ -937,39 +966,39 @@ describe Board do
           board.state[7][2] = Queen.new('que', 'black')
           board.state[7][3] = Rook.new('roo', 'black')
           board.state[7][4] = Rook.new('roo', 'black')
-          king.set_origin(board.state)
-          expect(board.each_square_safe?(king, -1)).to be false
+          white_king.set_origin(board.state)
+          expect(board.each_square_safe?(white_king, -1)).to be false
         end
       end
 
-      context 'when king square is under attack(check)' do
+      context 'when white_king square is under attack(check)' do
         it 'returns false' do
           board.state[7][4] = Queen.new('que', 'black')
-          king.set_origin(board.state)
-          expect(board.each_square_safe?(king, -1)).to be false
+          white_king.set_origin(board.state)
+          expect(board.each_square_safe?(white_king, -1)).to be false
         end
       end
 
       context 'when middle square is under attack' do
         it 'returns false' do
           board.state[7][3] = Rook.new('roo', 'black')
-          king.set_origin(board.state)
-          expect(board.each_square_safe?(king, -1)).to be false
+          white_king.set_origin(board.state)
+          expect(board.each_square_safe?(white_king, -1)).to be false
         end
       end
 
       context 'when target square is under attack' do
         it 'returns false' do
           board.state[7][2] = Rook.new('roo', 'black')
-          king.set_origin(board.state)
-          expect(board.each_square_safe?(king, -1)).to be false
+          white_king.set_origin(board.state)
+          expect(board.each_square_safe?(white_king, -1)).to be false
         end
       end
 
       context 'when no squares are under attack' do
         it 'returns true' do
-          king.set_origin(board.state)
-          expect(board.each_square_safe?(king, -1)).to be true
+          white_king.set_origin(board.state)
+          expect(board.each_square_safe?(white_king, -1)).to be true
         end
       end
     end
@@ -990,6 +1019,8 @@ describe Board do
 
       context 'when path is clear' do
         it 'castles kingside' do
+          board.state[7][6] = Knight.new('Kni', 'white')
+          board.make_move(7, 6, 5, 5)
           expect { board.castle(white_king, rook, 1) }
             .to change { board.state[7][6] }.to(white_king)
             .and change { board.state[7][5] }.to(rook)
@@ -1044,7 +1075,8 @@ describe Board do
     end
 
     context 'when queenside castling with White' do
-      let(:white_king) { King.new('Kin', 'white')}
+      let(:white_king) { King.new('Kin', 'white') }
+      let(:black_king) { King.new('kin', 'black') }
       let(:rook) { Rook.new('Roo', 'white') }
 
       before do
@@ -1090,6 +1122,7 @@ describe Board do
 
       context 'when white_king path is under attack' do
         it 'does not castle' do
+          board.state[0][7] = black_king
           board.state[6][1] = Bishop.new('bis', 'black')
           expect { board.castle(white_king, rook, -1) }
           .not_to change { board.state }
@@ -1183,7 +1216,8 @@ describe Board do
     end
 
     context 'when queenside castling with Black' do
-      let(:black_king) { King.new('kin', 'black')}
+      let(:black_king) { King.new('kin', 'black') }
+      let(:white_king) { King.new('Kin', 'white') }
       let(:rook) { Rook.new('roo', 'black') }
 
       before do
@@ -1229,7 +1263,8 @@ describe Board do
 
       context 'when king path is under attack' do
         it 'does not castle' do
-          board.state[1][1] = Bishop.new('bis', 'white')
+          board.state[1][1] = Bishop.new('Bis', 'white')
+          board.state[7][7] = white_king
           expect { board.castle(black_king, rook, -1) }
           .not_to change { board.state }
         end
