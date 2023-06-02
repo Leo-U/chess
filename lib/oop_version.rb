@@ -209,11 +209,14 @@ class Board
     king_dest_x = king_x + dir * 2
     rook_dest_x = king_x + dir
     if horizontal_clear?([y, king_x], [y, rook_x]) && each_square_safe?(king, dir) && king.unmoved && rook.unmoved
+      @state[y][king_x], @state[y][rook_x] = nil, nil
       add_piece(king, y, king_dest_x)
       add_piece(rook, y, rook_dest_x)
-      @state[y][king_x], @state[y][rook_x] = nil, nil
+
       king.color == 'white' ? @white_has_castled = true : @black_has_castled = true
       king.unmoved, rook.unmoved = false, false
+      puts "king origin is #{king.origin[0]}, #{king.origin[1]} after castling"
+      puts "rook origin is #{rook.origin[0]}, #{rook.origin[1]} after castling"
     end
   end
 
@@ -357,10 +360,11 @@ class King < Piece
 
   def capture_safe?(board, y = @destination[0], x = @destination[1])
     if board.state[y][x] && board.state[y][x].color != self.color
-      check_board = Board.new
-      check_board.state = Marshal.load(Marshal.dump(board.state))
-      check_board.state[y][x] = nil
-      empty_square_safe?(check_board)
+      dummy_board = Board.new
+      dummy_board.state = Marshal.load(Marshal.dump(board.state))
+      dummy_board.state[y][x] = nil
+      dummy_board.state[@origin[0]][@origin[1]] = nil
+      empty_square_safe?(dummy_board)
     else
       true
     end
@@ -398,7 +402,7 @@ class Pawn < Piece
   end
 
   def en_passant_possible?(board)
-    board.piece_at?(@color, @origin[0], @destination[1], 'opponent') && board.state[@origin[0]][@destination[1]].moved_two
+    board.piece_at?(@color, @origin[0], @destination[1], 'opponent') && board.state[@origin[0]][@destination[1]].instance_of?(Pawn) && board.state[@origin[0]][@destination[1]].moved_two
   end
 
   def enemy_at_attackable?(board)
@@ -504,6 +508,7 @@ end
 
 class Game
   include InputHandler
+  attr_reader :board
 
   def initialize
     @board = Board.new()
@@ -612,6 +617,3 @@ class Game
   end
 
 end
-
-game = Game.new
-game.play_game
