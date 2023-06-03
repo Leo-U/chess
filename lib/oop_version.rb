@@ -334,10 +334,6 @@ class Piece
     check_test_board.state[dest_y][dest_x] = self.dup
     check_test_board.king_is_safe?(@color)
   end
-
-  def legal_move_without_king_safety_check?
-    self.legal_move?(board)
-  end
 end
 
 class Knight < Piece
@@ -558,13 +554,25 @@ class Game
     recursive_sequence
   end
 
+  def set_game_status
+    @game_status = 'mate' if @board.player_mated?(@turn_color[0])
+  end
+
+  def puts_checkmate
+    puts "Checkmate. #{@turn_color[1].capitalize} wins."
+  end
+  
   def recursive_sequence
-      get_input_until_valid
-      retrieve_dest
-      branch
-      @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x)
-      continue_sequence
+    set_game_status
+    if @game_status == 'mate'
+      puts_checkmate
+      return
     end
+    get_input_until_valid
+    retrieve_dest
+    branch
+    @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x)
+    continue_sequence
   end
 
   def abort
@@ -643,7 +651,3 @@ class Game
   end
 
 end
-
-game = Game.new
-game.board.setup_board
-game.play_game
