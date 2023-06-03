@@ -178,13 +178,13 @@ class Board
       piece.set_origin(@state)
       piece.set_destination(dest_y, dest_x)
     end
-    opponent_pieces.none? { |piece| piece.instance_of?(Pawn) ? piece.square_attackable? : piece.legal_move?(self) }
+    opponent_pieces.none? { |piece| piece.instance_of?(Pawn) ? piece.square_attackable? : piece.legal_move?(self, check_king_safety = false) }
   end
 
   def find_king(color)
     @state.each do |row|
       row.each do |piece|
-        return piece if !piece.nil? && piece.instance_of?(King) && piece.color == color
+        return piece if piece && piece.instance_of?(King) && piece.color == color
       end
     end
   end
@@ -264,6 +264,23 @@ class Board
     end
   end
   
+  def player_mated?(color)
+    @state.each do |row|
+      row.each do |piece|
+        if piece && piece.color == color
+          @state.each_with_index do |row, y|
+            row.each_index do |x|
+              piece.set_destination(y, x)
+              return false if piece.legal_move?(self)
+              piece.destination = []
+            end
+          end
+        end
+      end
+    end
+    true
+  end
+
 end
 
 class Piece
@@ -318,26 +335,32 @@ class Piece
     check_test_board.king_is_safe?(@color)
   end
 
+  def legal_move_without_king_safety_check?
+    self.legal_move?(board)
+  end
 end
 
 class Knight < Piece
-  def legal_move?(board)
+  def legal_move?(board, check_king_safety = true)
     find_distances
-    [@distance_y, @distance_x].sort == [1, 2] && no_friendly_at_dest?(board) && results_in_king_safety?(board)
+    condition = [@distance_y, @distance_x].sort == [1, 2] && no_friendly_at_dest?(board)
+    check_king_safety ? condition && results_in_king_safety?(board) : condition
   end
 end
 
 class Bishop < Piece
-  def legal_move?(board)
+  def legal_move?(board, check_king_safety = true)
     find_distances
-    @distance_y == @distance_x && no_friendly_at_dest?(board) && diagonal_clear?(board) && results_in_king_safety?(board)
+    condition = @distance_y == @distance_x && no_friendly_at_dest?(board) && diagonal_clear?(board)
+    check_king_safety ? condition && results_in_king_safety?(board) : condition
   end
 end
 
 class Rook < Piece
-  def legal_move?(board)
+  def legal_move?(board, check_king_safety = true)
     find_distances
-    (@distance_y.zero? || @distance_x.zero?) && no_friendly_at_dest?(board) && horizontal_clear?(board) && results_in_king_safety?(board) 
+    condition = (@distance_y.zero? || @distance_x.zero?) && no_friendly_at_dest?(board) && horizontal_clear?(board)
+    check_king_safety ? condition && results_in_king_safety?(board) : condition
   end
 end
 
@@ -346,9 +369,10 @@ class Queen < Piece
     @destination[0] == @origin[0] || @destination[1] == @origin[1] ? horizontal_clear?(board) : diagonal_clear?(board)
   end
 
-  def legal_move?(board)
+  def legal_move?(board, check_king_safety = true)
     find_distances
-    no_friendly_at_dest?(board) && queen_path_clear?(board) && (@distance_y == @distance_x || (@distance_y.zero? || @distance_x.zero?)) && results_in_king_safety?(board)
+    condition = no_friendly_at_dest?(board) && queen_path_clear?(board) && (@distance_y == @distance_x || (@distance_y.zero? || @distance_x.zero?))
+    check_king_safety ? condition && results_in_king_safety?(board) : condition
   end
 end
 
@@ -370,7 +394,7 @@ class King < Piece
     end
   end
 
-  def legal_move?(board)
+  def legal_move?(board, check_king_safety = true)
     find_distances
     no_friendly_at_dest?(board) && @distance_y.between?(0, 1) && @distance_x.between?(0, 1) && empty_square_safe?(board) && capture_safe?(board)
   end
@@ -421,9 +445,10 @@ class Pawn < Piece
     !board.piece_at?(@color, @destination[0], @destination[1], 'opponent')
   end
 
-  def legal_move?(board)
+  def legal_move?(board, check_king_safety = true)
     set_direction
-    (no_opponent_in_front?(board) && no_friendly_at_dest?(board) && one_or_two_steps?(board) && x_in_bounds?(board) || enemy_at_attackable?(board)) && results_in_king_safety?(board)
+    condition = (no_opponent_in_front?(board) && no_friendly_at_dest?(board) && one_or_two_steps?(board) && x_in_bounds?(board) || enemy_at_attackable?(board))
+    check_king_safety ? condition && results_in_king_safety?(board) : condition
   end
 
   def prompt_loop(board, piece_name = nil)
@@ -534,11 +559,12 @@ class Game
   end
 
   def recursive_sequence
-    get_input_until_valid
-    retrieve_dest
-    branch
-    @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x)
-    continue_sequence
+      get_input_until_valid
+      retrieve_dest
+      branch
+      @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x)
+      continue_sequence
+    end
   end
 
   def abort
@@ -617,3 +643,7 @@ class Game
   end
 
 end
+
+game = Game.new
+game.board.setup_board
+game.play_game
