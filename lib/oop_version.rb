@@ -212,11 +212,8 @@ class Board
       @state[y][king_x], @state[y][rook_x] = nil, nil
       add_piece(king, y, king_dest_x)
       add_piece(rook, y, rook_dest_x)
-
       king.color == 'white' ? @white_has_castled = true : @black_has_castled = true
       king.unmoved, rook.unmoved = false, false
-      puts "king origin is #{king.origin[0]}, #{king.origin[1]} after castling"
-      puts "rook origin is #{rook.origin[0]}, #{rook.origin[1]} after castling"
     end
   end
 
@@ -549,6 +546,7 @@ class Game
   end
 
   def continue_sequence
+    system 'clear'
     @board.full_print_sequence('white')
     @turn_color.reverse!
     recursive_sequence
@@ -646,6 +644,7 @@ class Game
 
   def play_game
     @board.setup_board
+    system 'clear'
     @board.full_print_sequence(@turn_color[0])
     recursive_sequence
   end
