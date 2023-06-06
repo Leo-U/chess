@@ -416,7 +416,8 @@ describe Rook do
 
   describe '#unmoved?' do
     subject(:unmoved_rook) { described_class.new('rk1', 'black') }
-    let(:board) { Board.new }
+    let(:game) { Game.new }
+    let(:board) { game.board }
 
     before do
       board.setup_board
@@ -686,7 +687,8 @@ describe King do
 end
 
 describe Pawn do
-  let(:board) { Board.new }
+  let(:game) { Game.new }
+  let(:board) { game.board }
   let(:black_king) { King.new('kin', 'black') }
   let(:white_king) { King.new('Kin', 'white') }
 
@@ -827,7 +829,7 @@ describe Pawn do
       it 'pawn is promoted to specified piece' do
         board.state[0][3] = white_pawn
         white_pawn.set_origin(board.state)
-        allow(white_pawn).to receive(:gets).and_return('qUeEn')
+        allow_any_instance_of(Input).to receive(:get_input).and_return('qUeEn')
         y = white_pawn.origin[0]
         x = white_pawn.origin[1]
         white_pawn.promote(board)
@@ -839,7 +841,7 @@ describe Pawn do
       it 'pawn is promoted to specified piece' do
         board.state[7][0] = black_pawn
         black_pawn.set_origin(board.state)
-        allow(black_pawn).to receive(:gets).and_return('rook')
+        allow_any_instance_of(Input).to receive(:get_input).and_return('ROOK')
         y = black_pawn.origin[0]
         x = black_pawn.origin[1]
         black_pawn.promote(board)
@@ -850,7 +852,8 @@ describe Pawn do
 end
 
 describe Board do
-  let(:board) { Board.new }
+  let(:game) { Game.new }
+  let(:board) { game.board }
   let(:black_king) { King.new('kin', 'black') }
   let(:white_king) { King.new('Kin', 'white') }
 
@@ -1288,5 +1291,17 @@ describe Board do
         end
       end
     end
+  end
+end
+
+describe Game do
+  subject(:game) { described_class.new }
+
+  context 'when a game is played' do
+    xit 'changes state as expected' do
+      allow(game).to receive(:gets).and_return(
+        "g1f3", "g8f6", "d2d4", "c7c6", "c2c4", "d7d5", "b1c3", "e7e6", "e2e3", "f8b4", "a2a3", "b4c3", "b2c3", "o-o", "f1d3", "b8d7", "c1b2", "b7b6", "a1b1", "c8b7", "o-o", "c6c5", "c4d5", "f6d5", "c3c4", "d5f6", "d4d5", "e6d5", "c4d5", "b7d5", "f3e5", "d7e5", "b2e5", "d8e7", "e5f6", "e7f6", "d3h7", "g8h7", "d1d5", "a8d8", "d5h5", "h7g8", "h2h3", "d8d6", "f1d1", "f8d8", "a3a4", "g7g6", "h5g4", "d8d7", "d1d6", "f6d6", "g4e4", "d6d5", "e4c2", "g8g7", "c2c3", "f7f6", "c3b3", "d5b3", "b1b3", "d7c7", "b3c3", "g7f7", "c3c4", "f7e6", "e3e4", "e6e5", "g2g3", "c7d7", "f2f4", "e5e6", "g1f2", "d7d3", "h3h4", "d3b3", "g3g4", "b3b4", "c4b4", "c5b4", "f2e2", "e6d6", "e2d2", "d6c5", "d2c2", "a7a5", "c2b3", "c5d4", "h4h5", "g6h5", "g4h5", "d4c5", "e4e5", "b6b5", "a4b5", "a5a4", "b3a4", "c5c4", "b5b6", "b4b3", "b6b7", "b3b2", "b7b8", "queen", "c4c3", "b8b2", "c3b2", "e5f6", "b2c3", "f6f7", "c3d4", "f7f8", "queen", "d4e4", "h5h6", "e4f3", "f4f5", "f3e4", "f5f6", "e4d5", "f6f7", "d5c6", "h6h7", "c6d5", "h7h8", "queen", "d5e6", "f8g8", "e6d5", "f7f8", "queen", "d5c6",)
+      game.play_game
+    end 
   end
 end
