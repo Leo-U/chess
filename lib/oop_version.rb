@@ -1,3 +1,5 @@
+require 'singleton'
+
 module Display
   def init_escape_sequences
     @dark_bg = "\e[48;5;253m"
@@ -448,7 +450,7 @@ class Pawn < Piece
     until board.pieces.reject {|el| el == 'King'}.include?(piece_name) do
       board.full_print_sequence('white')
       puts 'Enter name of new piece for pawn promotion.'
-      piece_name = gets.chomp.downcase.capitalize
+      piece_name = Input.instance.get_input.capitalize
     end
     piece_name
   end
@@ -460,6 +462,14 @@ class Pawn < Piece
       new_piece = board.create_piece(piece_name, color)
       board.add_piece(new_piece, @origin[0], @origin[1])
     end
+  end
+end
+
+class Input
+  include Singleton
+
+  def get_input
+    @value = gets.chomp.downcase
   end
 end
 
@@ -500,10 +510,6 @@ module InputHandler
     non_pawn? || pawn_push? || short_c? || long_c? || draw? || resign? || unambiguous?
   end
 
-  def get_input
-    @input = gets.chomp.downcase
-  end
-
   def retrieve_dest
     @dest_y = 8 - @input[-1].to_i
     @dest_x = ('a'..'h').to_a.index @input[-2]
@@ -539,7 +545,7 @@ class Game
   def get_input_until_valid
     loop do
       puts "#{@turn_color[0].capitalize}, enter your move."
-      get_input
+      @input = Input.instance.get_input
       break if input_valid?
       puts 'Invalid input. Try again.'
     end
