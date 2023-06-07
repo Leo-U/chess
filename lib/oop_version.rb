@@ -175,12 +175,15 @@ class Board
   end
 
   def square_safe?(king, dest_y, dest_x)
-    opponent_pieces = @state.flatten.select { |el| el.is_a?(Piece) && el.color != king.color }
+    dummy_board = Board.new
+    dummy_board.state = Marshal.load(Marshal.dump(@state))
+    opponent_pieces = dummy_board.state.flatten.select { |el| el.is_a?(Piece) && el.color != king.color }
     opponent_pieces.each do |piece|
-      piece.set_origin(@state)
+      piece.set_origin(dummy_board.state)
       piece.set_destination(dest_y, dest_x)
     end
-    opponent_pieces.none? { |piece| piece.instance_of?(Pawn) ? piece.square_attackable? : piece.legal_move?(self, check_king_safety = false) }
+    dummy_board.state[king.origin[0]][king.origin[1]] = nil
+    opponent_pieces.none? { |piece| piece.instance_of?(Pawn) ? piece.square_attackable? : piece.legal_move?(dummy_board, check_king_safety = false) }
   end
 
   def find_king(color)
@@ -391,7 +394,9 @@ class King < Piece
 
   def legal_move?(board, check_king_safety = true)
     find_distances
-    no_friendly_at_dest?(board) && @distance_y.between?(0, 1) && @distance_x.between?(0, 1) && empty_square_safe?(board) && capture_safe?(board)
+    condition = no_friendly_at_dest?(board) && @distance_y.between?(0, 1) && @distance_x.between?(0, 1)
+    check_king_safety ? condition && empty_square_safe?(board) && capture_safe?(board) : condition
+    #no_friendly_at_dest?(board) && @distance_y.between?(0, 1) && @distance_x.between?(0, 1) && empty_square_safe?(board) && capture_safe?(board)
   end
 end
 
@@ -575,9 +580,12 @@ class Game
     get_input_until_valid
     retrieve_dest
     branch
-    @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x)
-    continue_sequence
+    unless @game_status == 'mate'  # add this line
+      @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x)
+      continue_sequence
+    end
   end
+  
 
   def abort
     puts 'Illegal move.'
