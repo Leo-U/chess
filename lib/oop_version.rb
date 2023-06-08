@@ -63,8 +63,27 @@ module Display
 
 end
 
+module OutputFEN
+  def output_fen
+    @state.map do |row|
+      row.map do |piece|
+        case piece
+        when nil then 1
+        when Rook then piece.color == 'white' ? 'R' : 'r'
+        when Knight then piece.color == 'white' ? 'N' : 'n'
+        when Bishop then piece.color == 'white' ? 'B' : 'b'
+        when Queen then piece.color == 'white' ? 'Q' : 'q'
+        when King then piece.color == 'white' ? 'K' : 'k'
+        when Pawn then piece.color == 'white' ? 'P' : 'p'
+        end
+      end.join
+    end.join('/').gsub(/1+/) { |ones| ones.length.to_s }
+  end  
+end
+
 class Board
   include Display
+  include OutputFEN
   attr_reader :pieces, :board, :white_has_castled, :black_has_castled
   attr_accessor :legal_pieces, :state
 
@@ -580,7 +599,7 @@ class Game
     get_input_until_valid
     retrieve_dest
     branch
-    unless @game_status == 'mate'  # add this line
+    unless @game_status == 'mate'
       @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x)
       continue_sequence
     end
