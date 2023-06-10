@@ -194,15 +194,25 @@ class Board
   end
 
   def square_safe?(king, dest_y, dest_x)
-    dummy_board = Board.new
-    dummy_board.state = Marshal.load(Marshal.dump(@state))
-    opponent_pieces = dummy_board.state.flatten.select { |el| el.is_a?(Piece) && el.color != king.color }
+    # dummy_board = Board.new
+    # dummy_board.state = Marshal.load(Marshal.dump(@state))
+    # opponent_pieces = dummy_board.state.flatten.select { |el| el.is_a?(Piece) && el.color != king.color }
+    # opponent_pieces.each do |piece|
+    #   piece.set_origin(dummy_board.state)
+    #   piece.set_destination(dest_y, dest_x)
+    # end
+    # dummy_board.state[king.origin[0]][king.origin[1]] = nil
+    # opponent_pieces.none? { |piece| piece.instance_of?(Pawn) ? piece.square_attackable? : piece.legal_move?(dummy_board, check_king_safety = false) }
+
+    opponent_pieces = @state.flatten.select { |el| el.is_a?(Piece) && el.color != king.color }
     opponent_pieces.each do |piece|
-      piece.set_origin(dummy_board.state)
+      piece.set_origin(@state)
       piece.set_destination(dest_y, dest_x)
     end
-    dummy_board.state[king.origin[0]][king.origin[1]] = nil
-    opponent_pieces.none? { |piece| piece.instance_of?(Pawn) ? piece.square_attackable? : piece.legal_move?(dummy_board, check_king_safety = false) }
+    @state[king.origin[0]][king.origin[1]] = nil
+    boolean = opponent_pieces.none? { |piece| piece.instance_of?(Pawn) ? piece.square_attackable? : piece.legal_move?(self, check_king_safety = false) }
+    @state[king.origin[0]][king.origin[1]] = king
+    boolean
   end
 
   def find_king(color)
@@ -302,6 +312,15 @@ class Board
     true
   end
 
+  def player_checkmated?(color)
+    king = find_king(color)
+    !square_safe?(king, king.origin[0], king.origin[1]) && player_mated?(color)
+  end
+
+  def player_stalemated?(color)
+    king = find_king(color)
+    square_safe?(king, king.origin[0], king.origin[1]) && player_mated?(color)
+  end
 end
 
 class Piece
@@ -415,7 +434,6 @@ class King < Piece
     find_distances
     condition = no_friendly_at_dest?(board) && @distance_y.between?(0, 1) && @distance_x.between?(0, 1)
     check_king_safety ? condition && empty_square_safe?(board) && capture_safe?(board) : condition
-    #no_friendly_at_dest?(board) && @distance_y.between?(0, 1) && @distance_x.between?(0, 1) && empty_square_safe?(board) && capture_safe?(board)
   end
 end
 
@@ -583,7 +601,7 @@ class Game
   end
 
   def set_game_status
-    @game_status = 'mate' if @board.player_mated?(@turn_color[0])
+    @game_status = 'mate' if @board.player_checkmated?(@turn_color[0])
   end
 
   def puts_checkmate
@@ -605,7 +623,6 @@ class Game
     end
   end
   
-
   def abort
     puts 'Illegal move.'
     recursive_sequence
@@ -648,6 +665,8 @@ class Game
   end
 
   def try_castle(dir)
+    has_castled = @turn_color[0] == 'white' ? @board.white_has_castled : @board.black_has_castled
+    abort if has_castled
     king = @turn_color[0] == 'white' ? @board.state[7][4] : @board.state[0][4]
     if dir == 1
       rook = @turn_color[0] == 'white' ? @board.state[7][7] : @board.state[0][7]
@@ -655,8 +674,6 @@ class Game
       rook = @turn_color[0] == 'white' ? @board.state[7][0] : @board.state[0][0]
     end
     @board.castle(king, rook, dir)
-    has_castled = @turn_color[0] == 'white' ? @board.white_has_castled : @board.black_has_castled
-    abort unless has_castled
   end
 
   def branch
