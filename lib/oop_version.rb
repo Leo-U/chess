@@ -63,7 +63,47 @@ module Display
 
 end
 
-module OutputFEN
+module DrawManager
+  def pieces_for_draw_check
+    pieces = []
+    @state.each do |row|
+      row.each do |piece|
+        pieces << piece if piece
+      end
+    end
+    pieces
+  end
+
+  def only_two_kings?
+    pieces_for_draw_check.length == 2
+  end
+
+  def lone_bishop_or_knight?
+    pieces_for_draw_check.length == 3 && pieces_for_draw_check.any? { |piece| piece.piece_name.downcase =~ /^(kni|bis)$/ }
+  end
+
+  def bishops
+    pieces_for_draw_check.filter { |piece| piece.piece_name.downcase == 'bis'}
+  end
+
+  def same_color_bishops?
+    bishops.all? { |bishop| bishop.origin.sum.even?} ||
+    bishops.all? { |bishop| bishop.origin.sum.odd?}
+  end
+
+  def only_same_color_bishops?
+    pieces_for_draw_check.length == 4 && bishops.length == 2 && same_color_bishops?
+  end
+
+  def insufficient_material?
+    only_two_kings? ||
+    lone_bishop_or_knight? ||
+    only_same_color_bishops?
+  end
+
+end
+
+module FenOutputter
   def output_fen
     @state.map do |row|
       row.map do |piece|
@@ -81,9 +121,13 @@ module OutputFEN
   end  
 end
 
+
+
 class Board
   include Display
-  include OutputFEN
+  include FenOutputter
+  include DrawManager
+
   attr_reader :pieces, :board, :white_has_castled, :black_has_castled
   attr_accessor :legal_pieces, :state
 
@@ -194,16 +238,6 @@ class Board
   end
 
   def square_safe?(king, dest_y, dest_x)
-    # dummy_board = Board.new
-    # dummy_board.state = Marshal.load(Marshal.dump(@state))
-    # opponent_pieces = dummy_board.state.flatten.select { |el| el.is_a?(Piece) && el.color != king.color }
-    # opponent_pieces.each do |piece|
-    #   piece.set_origin(dummy_board.state)
-    #   piece.set_destination(dest_y, dest_x)
-    # end
-    # dummy_board.state[king.origin[0]][king.origin[1]] = nil
-    # opponent_pieces.none? { |piece| piece.instance_of?(Pawn) ? piece.square_attackable? : piece.legal_move?(dummy_board, check_king_safety = false) }
-
     opponent_pieces = @state.flatten.select { |el| el.is_a?(Piece) && el.color != king.color }
     opponent_pieces.each do |piece|
       piece.set_origin(@state)
@@ -395,7 +429,10 @@ end
 class Rook < Piece
   def legal_move?(board, check_king_safety = true)
     find_distances
-    condition = (@distance_y.zero? || @distance_x.zero?) && no_friendly_at_dest?(board) && horizontal_clear?(board)
+    condition = 
+      (@distance_y.zero? || @distance_x.zero?) &&
+      no_friendly_at_dest?(board) &&
+      horizontal_clear?(board)
     check_king_safety ? condition && results_in_king_safety?(board) : condition
   end
 end
@@ -407,7 +444,9 @@ class Queen < Piece
 
   def legal_move?(board, check_king_safety = true)
     find_distances
-    condition = no_friendly_at_dest?(board) && queen_path_clear?(board) && (@distance_y == @distance_x || (@distance_y.zero? || @distance_x.zero?))
+    condition = no_friendly_at_dest?(board) &&
+                queen_path_clear?(board) &&
+                (@distance_y == @distance_x || (@distance_y.zero? || @distance_x.zero?))
     check_king_safety ? condition && results_in_king_safety?(board) : condition
   end
 end
@@ -463,11 +502,14 @@ class Pawn < Piece
   end
 
   def en_passant_possible?(board)
-    board.piece_at?(@color, @origin[0], @destination[1], 'opponent') && board.state[@origin[0]][@destination[1]].instance_of?(Pawn) && board.state[@origin[0]][@destination[1]].moved_two
+    board.piece_at?(@color, @origin[0], @destination[1], 'opponent') &&
+    board.state[@origin[0]][@destination[1]].instance_of?(Pawn) &&
+    board.state[@origin[0]][@destination[1]].moved_two
   end
 
   def enemy_at_attackable?(board)
-    square_attackable? && (board.piece_at?(@color, @destination[0], @destination[1], 'opponent') || en_passant_possible?(board))
+    square_attackable? &&
+    (board.piece_at?(@color, @destination[0], @destination[1], 'opponent') || en_passant_possible?(board))
   end
 
   def x_in_bounds?(board)
@@ -475,7 +517,8 @@ class Pawn < Piece
   end
 
   def one_or_two_steps?(board)
-    @destination[0] == @origin[0] + @one_step || (at_starting_square? && @destination[0] == @origin[0] + @two_step && horizontal_clear?(board))
+    @destination[0] == @origin[0] + @one_step ||
+    (at_starting_square? && @destination[0] == @origin[0] + @two_step && horizontal_clear?(board))
   end
 
   def no_opponent_in_front?(board)
@@ -484,7 +527,10 @@ class Pawn < Piece
 
   def legal_move?(board, check_king_safety = true)
     set_direction
-    condition = (no_opponent_in_front?(board) && no_friendly_at_dest?(board) && one_or_two_steps?(board) && x_in_bounds?(board) || enemy_at_attackable?(board))
+    condition = (no_opponent_in_front?(board) &&
+    no_friendly_at_dest?(board) &&
+    one_or_two_steps?(board) &&
+    x_in_bounds?(board) || enemy_at_attackable?(board))
     check_king_safety ? condition && results_in_king_safety?(board) : condition
   end
 
@@ -516,8 +562,16 @@ class Input
 end
 
 module InputHandler
-  def draw?
-    @input == 'draw'
+  def offer_draw?
+    @input == 'offer draw'
+  end
+
+  def agree?
+    @input == 'agree'
+  end
+
+  def claim_draw?
+    @input == 'claim draw'
   end
 
   def long_c?
@@ -549,7 +603,7 @@ module InputHandler
   end
 
   def input_valid?
-    non_pawn? || pawn_push? || short_c? || long_c? || draw? || resign? || unambiguous?
+    non_pawn? || pawn_push? || short_c? || long_c? || offer_draw? || agree? || claim_draw? || resign? || unambiguous?
   end
 
   def retrieve_dest
@@ -601,24 +655,47 @@ class Game
   end
 
   def set_game_status
-    @game_status = 'mate' if @board.player_checkmated?(@turn_color[0])
+    if @board.player_stalemated?(@turn_color[0])
+      @game_status = 'stalemate'
+    elsif @board.player_checkmated?(@turn_color[0])
+      @game_status = 'mate'
+    elsif @board.insufficient_material?
+      @game_status = 'insufficient material'
+    elsif @input == 'resign'
+      @game_status = 'resignation'
+    end
   end
 
-  def puts_checkmate
-    puts "Checkmate. #{@turn_color[1].capitalize} wins."
+  def puts_ending
+    if @game_status == 'mate'
+      puts "Checkmate. #{@turn_color[1].capitalize} wins."
+    elsif @game_status == 'stalemate'
+      puts "Stalemate. Teehee!"
+    elsif @game_status == 'insufficient material'
+      puts 'Draw by insufficient material.'
+    elsif @game_status == 'resignation'
+      puts "#{@turn_color[1].capitalize} resigns. #{@turn_color[0].capitalize} wins!"
+    end
   end
-  
+
+  def end_condition?
+    @game_status == 'mate' ||
+    @game_status == 'stalemate' || 
+    @game_status == 'insufficient material' ||
+    @game_status == 'resignation'
+  end
+
   def recursive_sequence
     set_game_status
-    if @game_status == 'mate'
-      puts_checkmate
+    if end_condition?
+      puts_ending
       return
     end
     get_input_until_valid
     retrieve_dest
     branch
-    unless @game_status == 'mate'
-      @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x)
+    unless end_condition?
+      @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x) unless @input == 'resign'
       continue_sequence
     end
   end
