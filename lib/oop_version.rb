@@ -103,7 +103,7 @@ module DrawManager
 
 end
 
-module FenOutputter
+module FenManager
   def output_fen
     @state.map do |row|
       row.map do |piece|
@@ -118,14 +118,30 @@ module FenOutputter
         end
       end.join
     end.join('/').gsub(/1+/) { |ones| ones.length.to_s }
-  end  
+  end
+
+  def push_position
+    @positions << output_fen
+  end
+
+  def get_positions
+    @positions
+  end
+
+  def count_repeated_positions
+    fen_counts = Hash.new(0)
+    @positions.each do |fen|
+      fen_counts[fen] += 1
+    end
+    fen_counts.values.max
+  end
 end
 
 
 
 class Board
   include Display
-  include FenOutputter
+  include FenManager
   include DrawManager
 
   attr_reader :pieces, :board, :white_has_castled, :black_has_castled
@@ -135,6 +151,7 @@ class Board
     @state =  8.times.map { 8.times.map { nil } }
     @pieces = ['Rook', 'Knight', 'Bishop', 'Queen', 'King', 'Bishop', 'Knight', 'Rook']
     @legal_pieces = []
+    @positions = []
     @white_has_castled = false
     @black_has_castled = false
   end
@@ -562,12 +579,19 @@ class Input
 end
 
 module InputHandler
-  def offer_draw?
+  def draw_offered?
     @input == 'offer draw'
   end
 
-  def agree?
-    @input == 'agree'
+  def draw_accepted?
+    @input == 'accept' ||
+    @input == 'accept draw' ||
+    @input == 'agree' ||
+    @input == 'agree to draw'
+  end
+
+  def agreement_valid?
+    draw_accepted? && @draw_offered
   end
 
   def claim_draw?
@@ -603,7 +627,7 @@ module InputHandler
   end
 
   def input_valid?
-    non_pawn? || pawn_push? || short_c? || long_c? || offer_draw? || agree? || claim_draw? || resign? || unambiguous?
+    non_pawn? || pawn_push? || short_c? || long_c? || draw_offered? || agreement_valid? || claim_draw? || resign? || unambiguous?
   end
 
   def retrieve_dest
@@ -650,39 +674,56 @@ class Game
   def continue_sequence
     system 'clear'
     @board.full_print_sequence('white')
+    puts "#{@turn_color[0].capitalize} offers draw." if @draw_offered
     @turn_color.reverse!
     recursive_sequence
   end
 
   def set_game_status
+    @game_status = 
     if @board.player_stalemated?(@turn_color[0])
-      @game_status = 'stalemate'
+      'stalemate'
     elsif @board.player_checkmated?(@turn_color[0])
-      @game_status = 'mate'
+      'mate'
     elsif @board.insufficient_material?
-      @game_status = 'insufficient material'
+      'insufficient material'
     elsif @input == 'resign'
-      @game_status = 'resignation'
+      'resignation'
+    elsif agreement_valid?
+      'draw by agreement'
+    elsif @board.count_repeated_positions == 3
+      'threefold'
     end
   end
 
   def puts_ending
-    if @game_status == 'mate'
+    case @game_status
+    when 'mate'
       puts "Checkmate. #{@turn_color[1].capitalize} wins."
-    elsif @game_status == 'stalemate'
-      puts "Stalemate. Teehee!"
-    elsif @game_status == 'insufficient material'
+    when 'stalemate'
+      puts "Stalemate. Teehee!"      
+    when 'insufficient material'
       puts 'Draw by insufficient material.'
-    elsif @game_status == 'resignation'
+    when 'resignation'
       puts "#{@turn_color[1].capitalize} resigns. #{@turn_color[0].capitalize} wins!"
+    when 'draw by agreement'
+      puts 'Draw by agreement.'
+    when 'threefold'
+      puts 'Draw by threefold repetition.'
     end
   end
 
   def end_condition?
-    @game_status == 'mate' ||
-    @game_status == 'stalemate' || 
-    @game_status == 'insufficient material' ||
-    @game_status == 'resignation'
+    ['mate', 'stalemate', 'insufficient material', 'resignation', 'draw by agreement', 'threefold'].include?(@game_status)
+  end
+
+  def handle_draw_agreement
+    if draw_offered?
+      @draw_offered = true
+      continue_sequence
+    elsif draw_accepted?
+      continue_sequence
+    end
   end
 
   def recursive_sequence
@@ -692,10 +733,13 @@ class Game
       return
     end
     get_input_until_valid
+    handle_draw_agreement
     retrieve_dest
     branch
     unless end_condition?
+      @draw_offered = false
       @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x) unless @input == 'resign'
+      @board.push_position
       continue_sequence
     end
   end
@@ -773,6 +817,7 @@ class Game
     @board.setup_board
     system 'clear'
     @board.full_print_sequence(@turn_color[0])
+    @board.push_position
     recursive_sequence
   end
 
