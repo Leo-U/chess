@@ -83,7 +83,7 @@ module DrawManager
   end
 
   def bishops
-    pieces_for_draw_check.filter { |piece| piece.piece_name.downcase == 'bis'}
+    pieces_for_draw_check.filter { |piece| piece.piece_name.downcase == 'bis' }
   end
 
   def same_color_bishops?
@@ -101,6 +101,30 @@ module DrawManager
     only_same_color_bishops?
   end
 
+  def count_pawns_by_row
+    fen_split = output_fen.split '/'
+    pawn_count_array = []
+    fen_split.each do |row|
+      pawn_count_array << row.count('p') + row.count('P')
+    end
+    pawn_count_array
+  end
+
+  def count_pieces
+    i = 0
+    @state.each do |row|
+      row.each do |piece|
+        i += 1 if piece
+      end
+    end
+    i
+  end
+
+  def pawn_and_piece_counts
+    array = count_pawns_by_row
+    array << count_pieces
+    array
+  end
 end
 
 module FenManager
@@ -299,6 +323,8 @@ class Board
       add_piece(rook, y, rook_dest_x)
       king.color == 'white' ? @white_has_castled = true : @black_has_castled = true
       king.unmoved, rook.unmoved = false, false
+    else
+      false
     end
   end
 
@@ -461,9 +487,10 @@ class Queen < Piece
 
   def legal_move?(board, check_king_safety = true)
     find_distances
-    condition = no_friendly_at_dest?(board) &&
-                queen_path_clear?(board) &&
-                (@distance_y == @distance_x || (@distance_y.zero? || @distance_x.zero?))
+    condition = 
+      no_friendly_at_dest?(board) &&
+      queen_path_clear?(board) &&
+      (@distance_y == @distance_x || (@distance_y.zero? || @distance_x.zero?))
     check_king_safety ? condition && results_in_king_safety?(board) : condition
   end
 end
@@ -583,15 +610,8 @@ module InputHandler
     @input == 'offer draw'
   end
 
-  def draw_accepted?
-    @input == 'accept' ||
-    @input == 'accept draw' ||
-    @input == 'agree' ||
-    @input == 'agree to draw'
-  end
-
   def agreement_valid?
-    draw_accepted? && @draw_offered
+    @draw_response == 'accept' && @draw_offered
   end
 
   def claim_draw?
@@ -659,6 +679,7 @@ class Game
     @turn_color = ['white', 'black']
     @game_status = 'ongoing'
     @input = ''
+    @fifty_move_increment = 0
     @letters = { 'n' => 'kni', 'b' => 'bis', 'r' => 'roo', 'q' => 'que', 'k' => 'kin' }
   end
 
@@ -674,7 +695,6 @@ class Game
   def continue_sequence
     system 'clear'
     @board.full_print_sequence('white')
-    puts "#{@turn_color[0].capitalize} offers draw." if @draw_offered
     @turn_color.reverse!
     recursive_sequence
   end
@@ -693,6 +713,8 @@ class Game
       'draw by agreement'
     elsif @board.count_repeated_positions == 3
       'threefold'
+    elsif @fifty_move_increment == 50
+      'fifty'
     end
   end
 
@@ -710,22 +732,38 @@ class Game
       puts 'Draw by agreement.'
     when 'threefold'
       puts 'Draw by threefold repetition.'
+    when 'fifty'
+      puts 'Draw by fifty-move rule.'
     end
   end
 
   def end_condition?
-    ['mate', 'stalemate', 'insufficient material', 'resignation', 'draw by agreement', 'threefold'].include?(@game_status)
+    ['mate', 'stalemate', 'insufficient material', 'resignation', 'draw by agreement', 'threefold', 'fifty'].include?(@game_status)
+  end
+
+  def get_draw_response
+    loop do
+      @draw_response = gets.chomp.downcase
+      break if @draw_response == "accept" || @draw_response == "decline"
+      puts "'Please enter 'accept' or 'decline'."
+    end
   end
 
   def handle_draw_agreement
     if draw_offered?
       @draw_offered = true
-      continue_sequence
-    elsif draw_accepted?
-      continue_sequence
+      puts "#{@turn_color[0].capitalize} offers draw. #{@turn_color[1].capitalize}, please accept or decline."
+      get_draw_response
+      if agreement_valid?
+        continue_sequence 
+      else
+        @draw_offered = false
+        @turn_color.reverse!
+        continue_sequence
+      end
     end
   end
-
+  
   def recursive_sequence
     set_game_status
     if end_condition?
@@ -737,8 +775,10 @@ class Game
     retrieve_dest
     branch
     unless end_condition?
-      @draw_offered = false
+      before_move_state = @board.pawn_and_piece_counts
       @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x) unless @input == 'resign'
+      after_move_state = @board.pawn_and_piece_counts
+      @fifty_move_increment += before_move_state != after_move_state ? -@fifty_move_increment : 0.5
       @board.push_position
       continue_sequence
     end
@@ -794,7 +834,7 @@ class Game
     else
       rook = @turn_color[0] == 'white' ? @board.state[7][0] : @board.state[0][0]
     end
-    @board.castle(king, rook, dir)
+    abort if @board.castle(king, rook, dir) == false
   end
 
   def branch
