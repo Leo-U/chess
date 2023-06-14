@@ -5,14 +5,14 @@ module Display
     @dark_bg = "\e[48;5;253m"
     @light_bg = "\e[48;5;231m"
     @black_fg = "\e[30m"
-    @red_fg = "\e[31m"
+    @red_fg = "\e[38;5;196m"
     @reset = "\e[0m"
   end
 
   def init_pieces
     @blank = '   '
     @red = { kin: '♚', que: '♛', roo: '♜', bis: '♝', kni: '♞', paw: '♟︎' }.transform_values{ |value| @red_fg + value }
-    @black = @red.transform_values{ |value| @black_fg + value[5..-1] }
+    @black = @red.transform_values{ |value| @black_fg + value[11..-1] }
   end
   
   def init_display
@@ -236,13 +236,13 @@ class Board
     end
   end
   
-  def make_move(origin_y, origin_x, dest_y, dest_x)
+  def make_move(origin_y, origin_x, dest_y, dest_x, computer_has_turn, print_color)
     piece = @state[origin_y][origin_x]
     set_piece_state(piece, dest_y, dest_x)
     move_piece_if_legal(piece, origin_y, origin_x, dest_y, dest_x)
     reset_piece_state(piece)
     piece.set_moved_two if piece.instance_of?(Pawn) && (origin_y - dest_y).abs == 2
-    piece.promote(self) if piece.instance_of?(Pawn)
+    piece.promote(self, computer_has_turn, print_color) if piece.instance_of?(Pawn)
   end
 
   def piece_at?(color, dest_y, dest_x, side)
@@ -496,7 +496,6 @@ class Queen < Piece
 end
 
 class King < Piece
-  
   def empty_square_safe?(board)
     board.square_safe?(self, @destination[0], @destination[1])
   end
@@ -578,19 +577,20 @@ class Pawn < Piece
     check_king_safety ? condition && results_in_king_safety?(board) : condition
   end
 
-  def prompt_loop(board, piece_name = nil)
+  def prompt_loop(board, computer_has_turn, print_color, piece_name = nil)
     until board.pieces.reject {|el| el == 'King'}.include?(piece_name) do
-      board.full_print_sequence('white')
+      system 'clear'
+      board.full_print_sequence(print_color)
       puts 'Enter name of new piece for pawn promotion.'
-      piece_name = Input.instance.get_input.capitalize
+      piece_name = computer_has_turn ? 'Queen' : Input.instance.get_input.capitalize
     end
     piece_name
   end
 
-  def promote(board)
+  def promote(board, computer_has_turn, print_color)
     if @origin[0] == 0 || @origin[0] == 7
       color = @origin[0] == 0 ? 'white' : 'black'
-      piece_name = prompt_loop(board)
+      piece_name = prompt_loop(board, computer_has_turn, print_color)
       new_piece = board.create_piece(piece_name, color)
       board.add_piece(new_piece, @origin[0], @origin[1])
     end
@@ -599,7 +599,6 @@ end
 
 class Input
   include Singleton
-
   def get_input
     @value = gets.chomp.downcase
   end
@@ -646,8 +645,30 @@ module InputHandler
     @input.length == 4 && algebraic?(0, 1) && algebraic?(-2, -1)
   end
 
+  def save_game?
+    @input == 'save game' || @input == 'save'
+  end
+
   def input_valid?
-    non_pawn? || pawn_push? || short_c? || long_c? || draw_offered? || agreement_valid? || claim_draw? || resign? || unambiguous?
+    non_pawn? ||
+    pawn_push? ||
+    short_c? ||
+    long_c? ||
+    draw_offered? ||
+    agreement_valid? ||
+    claim_draw? ||
+    resign? ||
+    unambiguous? ||
+    save_game?
+  end
+
+  def save_sequence
+    if save_game?
+      puts 'Please enter filename.'
+      filename = gets.chomp
+      save_game(filename)
+      recursive_sequence
+    end
   end
 
   def retrieve_dest
@@ -670,9 +691,36 @@ module InputHandler
   end
 end
 
+module ComputerPlayer
+  def legal_moves(color)
+    legal_moves = []
+    @board.state.each do |row|
+      row.each do |piece|
+        if piece && piece.color == color
+          @board.state.each_with_index do |row, y|
+            row.each_index do |x|
+              piece.set_destination(y, x)
+              legal_moves << [piece.origin, piece.destination] if piece.legal_move?(@board)
+              piece.destination = []
+            end
+          end
+        end
+      end
+    end
+    legal_moves
+  end
+
+  def sample_legal_moves(color)
+    legal_moves(color).sample
+  end
+end
+
 class Game
   include InputHandler
+  include ComputerPlayer
+
   attr_reader :board
+  attr_accessor :play_with_computer, :computer_has_turn, :print_color
 
   def initialize
     @board = Board.new()
@@ -681,6 +729,9 @@ class Game
     @input = ''
     @fifty_move_increment = 0
     @letters = { 'n' => 'kni', 'b' => 'bis', 'r' => 'roo', 'q' => 'que', 'k' => 'kin' }
+    @play_with_computer = false
+    @computer_has_turn = [false, true]
+    @print_color = 'white'
   end
 
   def get_input_until_valid
@@ -694,7 +745,7 @@ class Game
 
   def continue_sequence
     system 'clear'
-    @board.full_print_sequence('white')
+    @board.full_print_sequence(@print_color)
     @turn_color.reverse!
     recursive_sequence
   end
@@ -742,17 +793,23 @@ class Game
   end
 
   def get_draw_response
-    loop do
-      @draw_response = gets.chomp.downcase
-      break if @draw_response == "accept" || @draw_response == "decline"
-      puts "'Please enter 'accept' or 'decline'."
+    if @computer_has_turn[1] && @play_with_computer
+      puts "Computer takes pity on you and accepts the draw."
+      sleep(2.5)
+      @draw_response = "accept"
+    else
+      loop do
+        @draw_response = gets.chomp.downcase
+        break if @draw_response == "accept" || @draw_response == "decline"
+        puts "'Please enter 'accept' or 'decline'."
+      end
     end
   end
 
   def handle_draw_agreement
     if draw_offered?
       @draw_offered = true
-      puts "#{@turn_color[0].capitalize} offers draw. #{@turn_color[1].capitalize}, please accept or decline."
+      puts "#{@turn_color[0].capitalize} offers draw. #{@turn_color[1].capitalize}, please accept or decline." unless @computer_has_turn[1] && @play_with_computer
       get_draw_response
       if agreement_valid?
         continue_sequence 
@@ -764,22 +821,50 @@ class Game
     end
   end
   
+  def set_computer_move
+    random_move = sample_legal_moves(@turn_color[0])
+    sleep 0.5
+    @origin_y = random_move[0][0]
+    @origin_x = random_move[0][1]
+    @dest_y = random_move[1][0]
+    @dest_x = random_move[1][1]
+  end
+
+  def make_computer_move
+    pre_castle_state = [@board.white_has_castled, @board.black_has_castled]
+    castle_as_computer(1)
+    castle_as_computer(-1)
+    post_castle_state = [@board.white_has_castled, @board.black_has_castled]
+    @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x, @computer_has_turn[0], @print_color) if pre_castle_state == post_castle_state
+  end
+
+  def handle_input
+    get_input_until_valid
+    handle_draw_agreement
+    retrieve_dest
+    branch
+  end
+
   def recursive_sequence
     set_game_status
     if end_condition?
       puts_ending
       return
     end
-    get_input_until_valid
-    handle_draw_agreement
-    retrieve_dest
-    branch
+    unless @computer_has_turn[0]
+      handle_input
+      save_sequence
+    else
+      set_computer_move
+    end
     unless end_condition?
+      make_computer_move if @computer_has_turn[0]
       before_move_state = @board.pawn_and_piece_counts
-      @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x) unless @input == 'resign'
+      @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x, false, @print_color) unless @input == 'resign' || @computer_has_turn[0]
       after_move_state = @board.pawn_and_piece_counts
       @fifty_move_increment += before_move_state != after_move_state ? -@fifty_move_increment : 0.5
       @board.push_position
+      @computer_has_turn.reverse! if @play_with_computer
       continue_sequence
     end
   end
@@ -827,14 +912,26 @@ class Game
 
   def try_castle(dir)
     has_castled = @turn_color[0] == 'white' ? @board.white_has_castled : @board.black_has_castled
-    abort if has_castled
-    king = @turn_color[0] == 'white' ? @board.state[7][4] : @board.state[0][4]
+    abort if has_castled || @board.find_king(@turn_color[0]).unmoved == false
+    king = @board.find_king(@turn_color[0])
     if dir == 1
       rook = @turn_color[0] == 'white' ? @board.state[7][7] : @board.state[0][7]
     else
       rook = @turn_color[0] == 'white' ? @board.state[7][0] : @board.state[0][0]
     end
-    abort if @board.castle(king, rook, dir) == false
+    abort if rook.nil? || @board.castle(king, rook, dir) == false
+  end
+
+  def castle_as_computer(dir)
+    unless @board.find_king(@turn_color[0]).unmoved == false
+      king = @board.find_king(@turn_color[0])
+      if dir == 1
+        rook = @turn_color[0] == 'white' ? @board.state[7][7] : @board.state[0][7]
+      else
+        rook = @turn_color[0] == 'white' ? @board.state[7][0] : @board.state[0][0]
+      end
+      @board.castle(king, rook, dir) unless rook.nil?
+    end
   end
 
   def branch
@@ -846,19 +943,44 @@ class Game
       get_origin_from_piece_letter
     elsif short_c?
       try_castle(1)
+      @computer_has_turn.reverse! if @play_with_computer
       continue_sequence
     elsif long_c?
       try_castle(-1)
+      @computer_has_turn.reverse! if @play_with_computer
       continue_sequence
+    end
+  end
+
+  def save_game(filename)
+    File.open("./saved-games/#{filename}", 'w') do |file|
+      file.puts Marshal.dump(self)
+    end
+  end
+
+  def self.load_game(filename)
+    File.open(filename, 'r') do |file|
+      Marshal.load(file)
     end
   end
 
   def play_game
     @board.setup_board
     system 'clear'
-    @board.full_print_sequence(@turn_color[0])
+    @board.full_print_sequence(@print_color)
     @board.push_position
     recursive_sequence
   end
 
+  def play_from_saved
+    system 'clear'
+    @board.full_print_sequence(@print_color)
+    @board.push_position
+    recursive_sequence
+  end
+  
+  def play_saved_game(filename)
+    game = self.load_game(filename)
+    game.play_game
+  end
 end
