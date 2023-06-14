@@ -438,9 +438,9 @@ describe Rook do
 
     context 'when rook has moved' do
       it 'returns false' do
-        board.make_move(6, 0, 4, 0)
-        board.make_move(1, 0, 2, 0)
-        board.make_move(7, 0, 5, 0)
+        board.make_move(6, 0, 4, 0, false, 'white')
+        board.make_move(1, 0, 2, 0, false, 'white')
+        board.make_move(7, 0, 5, 0, false, 'white')
         expect(board.state[5][0].unmoved).to be false
       end
     end
@@ -790,7 +790,7 @@ describe Pawn do
           board.state[7][7] = white_king
           white_king.set_origin(board.state)
           white_pawn.set_origin(board.state)
-          board.make_move(1, 4, 3, 4)
+          board.make_move(1, 4, 3, 4, false, 'white')
           white_pawn.set_destination(2, 4)
           expect(white_pawn.legal_move?(board)).to be true
         end
@@ -841,7 +841,7 @@ describe Pawn do
         allow_any_instance_of(Input).to receive(:get_input).and_return('qUeEn')
         y = white_pawn.origin[0]
         x = white_pawn.origin[1]
-        white_pawn.promote(board)
+        white_pawn.promote(board, false, 'white')
         expect(board.state[y][x].instance_of?(Queen)).to be true
       end
     end
@@ -853,7 +853,7 @@ describe Pawn do
         allow_any_instance_of(Input).to receive(:get_input).and_return('ROOK')
         y = black_pawn.origin[0]
         x = black_pawn.origin[1]
-        black_pawn.promote(board)
+        black_pawn.promote(board, false, 'white')
         expect(board.state[y][x].instance_of?(Rook)).to be true
       end
     end
@@ -893,16 +893,16 @@ describe Board do
       context 'when black pawn is moved forward instead of taking en passant' do
         it 'does NOT remove en passantable pawn from the board' do
           en_passantable_white_pawn.set_destination(5, 2)
-          board.make_move(6, 2, 4, 2)
-          expect { board.make_move(4, 1, 5, 1) }.not_to change { board.state[4][2] }.from(be_truthy)
+          board.make_move(6, 2, 4, 2, false, 'white')
+          expect { board.make_move(4, 1, 5, 1, false, 'white') }.not_to change { board.state[4][2] }.from(be_truthy)
         end
       end
 
       context 'when black pawn captures en passant' do
         it 'removes the en passantable pawn from the board' do
           en_passantable_white_pawn.set_destination(5, 2)
-          board.make_move(6, 2, 4, 2)
-          expect { board.make_move(4, 1, 5, 2) }.to change { board.state[4][2] }.from(be_truthy)
+          board.make_move(6, 2, 4, 2, false, 'white')
+          expect { board.make_move(4, 1, 5, 2, false, 'white') }.to change { board.state[4][2] }.from(be_truthy)
         end
       end
     end
@@ -1032,7 +1032,7 @@ describe Board do
       context 'when path is clear' do
         it 'castles kingside' do
           board.state[7][6] = Knight.new('Kni', 'white')
-          board.make_move(7, 6, 5, 5)
+          board.make_move(7, 6, 5, 5, false, 'white')
           expect { board.castle(white_king, rook, 1) }
             .to change { board.state[7][6] }.to(white_king)
             .and change { board.state[7][5] }.to(rook)
@@ -1069,8 +1069,8 @@ describe Board do
 
       context 'when white_king has already moved' do
         it 'does not castle' do
-          board.make_move(7, 4, 7, 3)
-          board.make_move(7, 3, 7, 4)
+          board.make_move(7, 4, 7, 3, false, 'white')
+          board.make_move(7, 3, 7, 4, false, 'white')
           expect { board.castle(white_king, rook, 1) }
           .not_to change { board.state }
         end
@@ -1078,8 +1078,8 @@ describe Board do
 
       context 'when rook has already moved' do
         it 'does not castle' do
-          board.make_move(7, 7, 1, 7)
-          board.make_move(1, 7, 7, 7)
+          board.make_move(7, 7, 1, 7, false, 'white')
+          board.make_move(1, 7, 7, 7, false, 'white')
           expect { board.castle(white_king, rook, 1) }
           .not_to change { board.state }
         end
@@ -1143,8 +1143,8 @@ describe Board do
 
       context 'when white_king has already moved' do
         it 'does not castle' do
-          board.make_move(7, 4, 7, 5)
-          board.make_move(7, 5, 7, 4)
+          board.make_move(7, 4, 7, 5, false, 'white')
+          board.make_move(7, 5, 7, 4, false, 'white')
           expect { board.castle(white_king, rook, -1) }
           .not_to change { board.state }
         end
@@ -1152,8 +1152,8 @@ describe Board do
 
       context 'when rook has already moved' do
         it 'does not castle' do
-          board.make_move(7, 0, 7, 1)
-          board.make_move(7, 1, 7, 0)
+          board.make_move(7, 0, 7, 1, false, 'white')
+          board.make_move(7, 1, 7, 0, false, 'white')
           expect { board.castle(white_king, rook, -1) }
           .not_to change { board.state }
         end
@@ -1210,8 +1210,8 @@ describe Board do
 
       context 'when king has already moved' do
         it 'does not castle' do
-          board.make_move(0, 4, 0, 3)
-          board.make_move(0, 3, 0, 4)
+          board.make_move(0, 4, 0, 3, false, 'white')
+          board.make_move(0, 3, 0, 4, false, 'white')
           expect { board.castle(black_king, rook, 1) }
           .not_to change { board.state }
         end
@@ -1219,8 +1219,8 @@ describe Board do
 
       context 'when rook has already moved' do
         it 'does not castle' do
-          board.make_move(0, 7, 1, 7)
-          board.make_move(1, 7, 0, 7)
+          board.make_move(0, 7, 1, 7, false, 'white')
+          board.make_move(1, 7, 0, 7, false, 'white')
           expect { board.castle(black_king, rook, 1) }
           .not_to change { board.state }
         end
@@ -1284,8 +1284,8 @@ describe Board do
 
       context 'when king has already moved' do
         it 'does not castle' do
-          board.make_move(0, 4, 0, 5)
-          board.make_move(0, 5, 0, 4)
+          board.make_move(0, 4, 0, 5, false, 'white')
+          board.make_move(0, 5, 0, 4, false, 'white')
           expect { board.castle(black_king, rook, -1) }
           .not_to change { board.state }
         end
@@ -1293,8 +1293,8 @@ describe Board do
 
       context 'when rook has already moved' do
         it 'does not castle' do
-          board.make_move(0, 0, 0, 1)
-          board.make_move(0, 1, 0, 0)
+          board.make_move(0, 0, 0, 1, false, 'white')
+          board.make_move(0, 1, 0, 0, false, 'white')
           expect { board.castle(black_king, rook, -1) }
           .not_to change { board.state }
         end
