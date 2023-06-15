@@ -1,4 +1,4 @@
-require_relative 'oop_version.rb'
+require_relative 'game'
 
 class GameInterface
   def initialize
