@@ -1,4 +1,4 @@
-require_relative '../lib/oop_version.rb'
+require_relative '../lib/game.rb'
 
 describe Game do
   File.open('./spec/game-bank-all-end-in-mate.pgn').each("}\n\n") do |game_text|
