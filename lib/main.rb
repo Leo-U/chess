@@ -19,6 +19,7 @@ class GameInterface
 
   def display_menu
     puts 'Pick one:'
+    puts ''
     puts '(1) Human vs. computer'
     puts '(2) Human vs. human'
     puts '(3) Load game'
@@ -94,4 +95,5 @@ class GameInterface
   end
 end
 
+system 'clear'
 GameInterface.new.start
