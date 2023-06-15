@@ -24,7 +24,7 @@ class Game
 
   def get_input_until_valid
     loop do
-      puts "#{@turn_color[0].capitalize}, enter your move. Enter 'help' for instructions."
+      puts "#{@turn_color[0].capitalize}, enter move or 'help'."
       @input = Input.instance.get_input
       break if input_valid?
       puts 'Invalid input. Try again.'
