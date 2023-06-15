@@ -24,7 +24,7 @@ class Game
 
   def get_input_until_valid
     loop do
-      puts "#{@turn_color[0].capitalize}, enter your move."
+      puts "#{@turn_color[0].capitalize}, enter your move. Enter 'help' for instructions."
       @input = Input.instance.get_input
       break if input_valid?
       puts 'Invalid input. Try again.'
@@ -108,7 +108,7 @@ class Game
       end
     end
   end
-  
+
   def set_computer_move
     random_move = sample_legal_moves(@turn_color[0])
     sleep 0.5
@@ -126,9 +126,27 @@ class Game
     @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x, @computer_has_turn[0], @print_color) if pre_castle_state == post_castle_state
   end
 
+  def print_instructions
+    puts ''
+    File.open("lib/instructions.txt", 'r') do |file|
+      file.each_line do |line|
+        puts line
+      end
+    end
+    puts ''
+  end
+
+  def handle_help
+    if @input == 'help'.downcase
+      print_instructions
+      get_input_until_valid
+    end
+  end
+
   def handle_input
     get_input_until_valid
     handle_draw_agreement
+    handle_help
     retrieve_dest
     branch
   end
