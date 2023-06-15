@@ -43,6 +43,10 @@ module InputHandler
     @input == 'save game' || @input == 'save'
   end
 
+  def help?
+    @input == 'h' || @input == 'help'
+  end
+
   def input_valid?
     non_pawn? ||
     pawn_push? ||
@@ -53,7 +57,8 @@ module InputHandler
     claim_draw? ||
     resign? ||
     unambiguous? ||
-    save_game?
+    save_game? ||
+    help?
   end
 
   def save_sequence
