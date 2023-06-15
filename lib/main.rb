@@ -2,8 +2,8 @@ require_relative 'game'
 
 class GameInterface
   def initialize
-    @color_choices = ['black', 'white']
-    @directory = "./saved-games"
+    @color_choices = %w[black white]
+    @directory = './saved-games'
   end
 
   def start
@@ -50,7 +50,7 @@ class GameInterface
 
     until @color_choices.include?(color)
       color = gets.chomp.downcase
-      puts 'Invalid choice.' if !@color_choices.include?(color)
+      puts 'Invalid choice.' unless @color_choices.include?(color)
     end
     color
   end
@@ -84,11 +84,10 @@ class GameInterface
     filename = nil
     until Dir.entries(@directory).include?(filename)
       filename = gets.chomp.downcase
-      if Dir.entries(@directory).include?(filename)
-        return Game.load_game("#{@directory}/#{filename}")
-      else
-        puts 'Invalid filename. Please re-type.'
-      end
+      return Game.load_game("#{@directory}/#{filename}") if Dir.entries(@directory).include?(filename)
+
+      puts 'Invalid filename. Please re-type.'
+
     end
   end
 end

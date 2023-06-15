@@ -6,7 +6,7 @@ class King < Piece
   end
 
   def capture_safe?(board, y = @destination[0], x = @destination[1])
-    if board.state[y][x] && board.state[y][x].color != self.color
+    if board.state[y][x] && board.state[y][x].color != color
       dummy_board = Board.new
       dummy_board.state = Marshal.load(Marshal.dump(board.state))
       dummy_board.state[y][x] = nil

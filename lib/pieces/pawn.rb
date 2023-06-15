@@ -2,8 +2,9 @@ require_relative 'piece'
 
 class Pawn < Piece
   attr_reader :moved_two
+
   def at_starting_square?
-    @color == 'white' ? @origin[0] == 6 : @origin[0] == 1
+    @origin[0] == (@color == 'white' ? 6 : 1)
   end
 
   def set_direction(c = @color == 'white')
@@ -27,22 +28,22 @@ class Pawn < Piece
 
   def en_passant_possible?(board)
     board.piece_at?(@color, @origin[0], @destination[1], 'opponent') &&
-    board.state[@origin[0]][@destination[1]].instance_of?(Pawn) &&
-    board.state[@origin[0]][@destination[1]].moved_two
+      board.state[@origin[0]][@destination[1]].instance_of?(Pawn) &&
+      board.state[@origin[0]][@destination[1]].moved_two
   end
 
   def enemy_at_attackable?(board)
     square_attackable? &&
-    (board.piece_at?(@color, @destination[0], @destination[1], 'opponent') || en_passant_possible?(board))
+      (board.piece_at?(@color, @destination[0], @destination[1], 'opponent') || en_passant_possible?(board))
   end
 
-  def x_in_bounds?(board)
+  def x_in_bounds?(_board)
     @destination[1] == @origin[1]
   end
 
   def one_or_two_steps?(board)
     @destination[0] == @origin[0] + @one_step ||
-    (at_starting_square? && @destination[0] == @origin[0] + @two_step && horizontal_clear?(board))
+      (at_starting_square? && @destination[0] == @origin[0] + @two_step && horizontal_clear?(board))
   end
 
   def no_opponent_in_front?(board)
@@ -59,7 +60,7 @@ class Pawn < Piece
   end
 
   def prompt_loop(board, computer_has_turn, print_color, piece_name = nil)
-    until board.pieces.reject {|el| el == 'King'}.include?(piece_name) do
+    until board.pieces.reject { |el| el == 'King' }.include?(piece_name)
       system 'clear'
       board.full_print_sequence(print_color)
       puts 'Enter name of new piece for pawn promotion.'
@@ -69,11 +70,11 @@ class Pawn < Piece
   end
 
   def promote(board, computer_has_turn, print_color)
-    if @origin[0] == 0 || @origin[0] == 7
-      color = @origin[0] == 0 ? 'white' : 'black'
-      piece_name = prompt_loop(board, computer_has_turn, print_color)
-      new_piece = board.create_piece(piece_name, color)
-      board.add_piece(new_piece, @origin[0], @origin[1])
-    end
+    return unless @origin[0] == 0 || @origin[0] == 7
+
+    color = @origin[0] == 0 ? 'white' : 'black'
+    piece_name = prompt_loop(board, computer_has_turn, print_color)
+    new_piece = board.create_piece(piece_name, color)
+    board.add_piece(new_piece, @origin[0], @origin[1])
   end
 end

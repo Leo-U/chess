@@ -11,8 +11,8 @@ class Game
   attr_accessor :play_with_computer, :computer_has_turn, :print_color
 
   def initialize
-    @board = Board.new()
-    @turn_color = ['white', 'black']
+    @board = Board.new
+    @turn_color = %w[white black]
     @game_status = 'ongoing'
     @input = ''
     @fifty_move_increment = 0
@@ -27,6 +27,7 @@ class Game
       puts "#{@turn_color[0].capitalize}, enter move or 'help'."
       @input = Input.instance.get_input
       break if input_valid?
+
       puts 'Invalid input. Try again.'
     end
   end
@@ -39,22 +40,22 @@ class Game
   end
 
   def set_game_status
-    @game_status = 
-    if @board.player_stalemated?(@turn_color[0])
-      'stalemate'
-    elsif @board.player_checkmated?(@turn_color[0])
-      'mate'
-    elsif @board.insufficient_material?
-      'insufficient material'
-    elsif @input == 'resign'
-      'resignation'
-    elsif agreement_valid?
-      'draw by agreement'
-    elsif @board.count_repeated_positions == 3
-      'threefold'
-    elsif @fifty_move_increment == 50
-      'fifty'
-    end
+    @game_status =
+      if @board.player_stalemated?(@turn_color[0])
+        'stalemate'
+      elsif @board.player_checkmated?(@turn_color[0])
+        'mate'
+      elsif @board.insufficient_material?
+        'insufficient material'
+      elsif @input == 'resign'
+        'resignation'
+      elsif agreement_valid?
+        'draw by agreement'
+      elsif @board.count_repeated_positions == 3
+        'threefold'
+      elsif @fifty_move_increment == 50
+        'fifty'
+      end
   end
 
   def puts_ending
@@ -62,7 +63,7 @@ class Game
     when 'mate'
       puts "Checkmate. #{@turn_color[1].capitalize} wins."
     when 'stalemate'
-      puts "Stalemate. Teehee!"      
+      puts 'Stalemate. Teehee!'
     when 'insufficient material'
       puts 'Draw by insufficient material.'
     when 'resignation'
@@ -77,35 +78,39 @@ class Game
   end
 
   def end_condition?
-    ['mate', 'stalemate', 'insufficient material', 'resignation', 'draw by agreement', 'threefold', 'fifty'].include?(@game_status)
+    ['mate', 'stalemate', 'insufficient material', 'resignation', 'draw by agreement', 'threefold',
+     'fifty'].include?(@game_status)
   end
 
   def get_draw_response
     if @computer_has_turn[1] && @play_with_computer
-      puts "Computer takes pity on you and accepts the draw."
+      puts 'Computer takes pity on you and accepts the draw.'
       sleep(2.5)
-      @draw_response = "accept"
+      @draw_response = 'accept'
     else
       loop do
         @draw_response = gets.chomp.downcase
-        break if @draw_response == "accept" || @draw_response == "decline"
+        break if @draw_response == 'accept' || @draw_response == 'decline'
+
         puts "'Please enter 'accept' or 'decline'."
       end
     end
   end
 
   def handle_draw_agreement
-    if draw_offered?
-      @draw_offered = true
-      puts "#{@turn_color[0].capitalize} offers draw. #{@turn_color[1].capitalize}, please accept or decline." unless @computer_has_turn[1] && @play_with_computer
-      get_draw_response
-      if agreement_valid?
-        continue_sequence 
-      else
-        @draw_offered = false
-        @turn_color.reverse!
-        continue_sequence
-      end
+    return unless draw_offered?
+
+    @draw_offered = true
+    unless @computer_has_turn[1] && @play_with_computer
+      puts "#{@turn_color[0].capitalize} offers draw. #{@turn_color[1].capitalize}, please accept or decline."
+    end
+    get_draw_response
+    if agreement_valid?
+      continue_sequence
+    else
+      @draw_offered = false
+      @turn_color.reverse!
+      continue_sequence
     end
   end
 
@@ -123,12 +128,15 @@ class Game
     castle_as_computer(1)
     castle_as_computer(-1)
     post_castle_state = [@board.white_has_castled, @board.black_has_castled]
-    @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x, @computer_has_turn[0], @print_color) if pre_castle_state == post_castle_state
+    return unless pre_castle_state == post_castle_state
+
+    @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x, @computer_has_turn[0],
+                     @print_color)
   end
 
   def print_instructions
     puts ''
-    File.open("lib/instructions.txt", 'r') do |file|
+    File.open('lib/instructions.txt', 'r') do |file|
       file.each_line do |line|
         puts line
       end
@@ -137,10 +145,10 @@ class Game
   end
 
   def handle_help
-    if @input == 'help'.downcase
-      print_instructions
-      get_input_until_valid
-    end
+    return unless @input == 'help'.downcase
+
+    print_instructions
+    get_input_until_valid
   end
 
   def handle_input
@@ -157,24 +165,27 @@ class Game
       puts_ending
       return
     end
-    unless @computer_has_turn[0]
+    if @computer_has_turn[0]
+      set_computer_move
+    else
       handle_input
       save_sequence
-    else
-      set_computer_move
     end
-    unless end_condition?
-      make_computer_move if @computer_has_turn[0]
-      before_move_state = @board.pawn_and_piece_counts
-      @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x, false, @print_color) unless @input == 'resign' || @computer_has_turn[0]
-      after_move_state = @board.pawn_and_piece_counts
-      @fifty_move_increment += before_move_state != after_move_state ? -@fifty_move_increment : 0.5
-      @board.push_position
-      @computer_has_turn.reverse! if @play_with_computer
-      continue_sequence
+    return if end_condition?
+
+    make_computer_move if @computer_has_turn[0]
+    before_move_state = @board.pawn_and_piece_counts
+    unless @input == 'resign' || @computer_has_turn[0]
+      @board.make_move(@origin_y, @origin_x, @dest_y, @dest_x, false,
+                       @print_color)
     end
+    after_move_state = @board.pawn_and_piece_counts
+    @fifty_move_increment += before_move_state != after_move_state ? -@fifty_move_increment : 0.5
+    @board.push_position
+    @computer_has_turn.reverse! if @play_with_computer
+    continue_sequence
   end
-  
+
   def abort
     puts 'Illegal move.'
     recursive_sequence
@@ -220,24 +231,24 @@ class Game
     has_castled = @turn_color[0] == 'white' ? @board.white_has_castled : @board.black_has_castled
     abort if has_castled || @board.find_king(@turn_color[0]).unmoved == false
     king = @board.find_king(@turn_color[0])
-    if dir == 1
-      rook = @turn_color[0] == 'white' ? @board.state[7][7] : @board.state[0][7]
-    else
-      rook = @turn_color[0] == 'white' ? @board.state[7][0] : @board.state[0][0]
-    end
+    rook = if dir == 1
+             @turn_color[0] == 'white' ? @board.state[7][7] : @board.state[0][7]
+           else
+             @turn_color[0] == 'white' ? @board.state[7][0] : @board.state[0][0]
+           end
     abort if rook.nil? || @board.castle(king, rook, dir) == false
   end
 
   def castle_as_computer(dir)
-    unless @board.find_king(@turn_color[0]).unmoved == false
-      king = @board.find_king(@turn_color[0])
-      if dir == 1
-        rook = @turn_color[0] == 'white' ? @board.state[7][7] : @board.state[0][7]
-      else
-        rook = @turn_color[0] == 'white' ? @board.state[7][0] : @board.state[0][0]
-      end
-      @board.castle(king, rook, dir) unless rook.nil?
-    end
+    return if @board.find_king(@turn_color[0]).unmoved == false
+
+    king = @board.find_king(@turn_color[0])
+    rook = if dir == 1
+             @turn_color[0] == 'white' ? @board.state[7][7] : @board.state[0][7]
+           else
+             @turn_color[0] == 'white' ? @board.state[7][0] : @board.state[0][0]
+           end
+    @board.castle(king, rook, dir) unless rook.nil?
   end
 
   def branch
@@ -284,9 +295,9 @@ class Game
     @board.push_position
     recursive_sequence
   end
-  
+
   def play_saved_game(filename)
-    game = self.load_game(filename)
+    game = load_game(filename)
     game.play_game
   end
 end

@@ -19,7 +19,7 @@ class Board
 
   def initialize
     @state =  8.times.map { 8.times.map { nil } }
-    @pieces = ['Rook', 'Knight', 'Bishop', 'Queen', 'King', 'Bishop', 'Knight', 'Rook']
+    @pieces = %w[Rook Knight Bishop Queen King Bishop Knight Rook]
     @legal_pieces = []
     @positions = []
     @white_has_castled = false
@@ -69,19 +69,19 @@ class Board
     piece.set_destination(dest_y, dest_x)
     piece.set_origin(@state)
   end
-  
+
   def set_nil(piece, origin_y, origin_x, dest_x)
     @state[origin_y][dest_x] = nil if piece.instance_of?(Pawn) && piece.en_passant_possible?(self)
     @state[origin_y][origin_x] = nil
   end
 
   def move_piece_if_legal(piece, origin_y, origin_x, dest_y, dest_x)
-    if piece.legal_move?(self)
-      @state[dest_y][dest_x] = piece
-      set_nil(piece, origin_y, origin_x, dest_x)
-    end
+    return unless piece.legal_move?(self)
+
+    @state[dest_y][dest_x] = piece
+    set_nil(piece, origin_y, origin_x, dest_x)
   end
-  
+
   def make_move(origin_y, origin_x, dest_y, dest_x, computer_has_turn, print_color)
     piece = @state[origin_y][origin_x]
     set_piece_state(piece, dest_y, dest_x)
@@ -93,7 +93,7 @@ class Board
 
   def piece_at?(color, dest_y, dest_x, side)
     dest_piece = @state[dest_y][dest_x]
-    dest_piece != nil && (side == 'friendly' ? color == dest_piece.color : color != dest_piece.color)
+    !dest_piece.nil? && (side == 'friendly' ? color == dest_piece.color : color != dest_piece.color)
   end
 
   def direction_clear?(origin, destination, y_inc, x_inc, y = origin[0], x = origin[1])
@@ -102,14 +102,15 @@ class Board
       y += y_inc
       x += x_inc
       break if [y, x] == destination || !y.between?(0, 7) || !x.between?(0, 7)
+
       path << @state[y][x].nil?
     end
     path.all?
   end
 
   def diagonal_clear?(origin, destination)
-    destination[0] > origin[0] ? inc_y = 1 : inc_y = -1
-    destination[1] > origin[1] ? inc_x = 1 : inc_x = -1
+    inc_y = destination[0] > origin[0] ? 1 : -1
+    inc_x = destination[1] > origin[1] ? 1 : -1
     direction_clear?(origin, destination, inc_y, inc_x)
   end
 
@@ -131,7 +132,9 @@ class Board
       piece.set_destination(dest_y, dest_x)
     end
     @state[king.origin[0]][king.origin[1]] = nil
-    boolean = opponent_pieces.none? { |piece| piece.instance_of?(Pawn) ? piece.square_attackable? : piece.legal_move?(self, check_king_safety = false) }
+    boolean = opponent_pieces.none? do |piece|
+      piece.instance_of?(Pawn) ? piece.square_attackable? : piece.legal_move?(self, check_king_safety = false)
+    end
     @state[king.origin[0]][king.origin[1]] = king
     boolean
   end
@@ -177,19 +180,8 @@ class Board
   def find_legal_pieces(turn_color, piece_name, dest_y, dest_x)
     @state.each do |row|
       row.each do |piece|
-        if !piece.nil? && piece.color == turn_color && piece.piece_name.downcase == piece_name
-          piece.set_destination(dest_y, dest_x)
-          @legal_pieces << piece if piece.legal_move?(self)
-          piece.destination = []
-        end
-      end
-    end
-  end
+        next unless !piece.nil? && piece.color == turn_color && piece.piece_name.downcase == piece_name
 
-  def find_pawn_origin(turn_color, dest_y, dest_x)
-    @state.each do |row|
-      piece = row[dest_x]
-      if !piece.nil? && piece.color == turn_color && piece.instance_of?(Pawn)
         piece.set_destination(dest_y, dest_x)
         @legal_pieces << piece if piece.legal_move?(self)
         piece.destination = []
@@ -197,12 +189,23 @@ class Board
     end
   end
 
-  def check_if_legal(turn_color, origin_y, origin_x, dest_y, dest_x)
-    piece = @state[origin_y][origin_x]
-    if !piece.nil? && piece.color == turn_color
+  def find_pawn_origin(turn_color, dest_y, dest_x)
+    @state.each do |row|
+      piece = row[dest_x]
+      next unless !piece.nil? && piece.color == turn_color && piece.instance_of?(Pawn)
+
       piece.set_destination(dest_y, dest_x)
       @legal_pieces << piece if piece.legal_move?(self)
+      piece.destination = []
     end
+  end
+
+  def check_if_legal(turn_color, origin_y, origin_x, dest_y, dest_x)
+    piece = @state[origin_y][origin_x]
+    return unless !piece.nil? && piece.color == turn_color
+
+    piece.set_destination(dest_y, dest_x)
+    @legal_pieces << piece if piece.legal_move?(self)
   end
 
   def print_for_rspec
@@ -217,17 +220,18 @@ class Board
       puts
     end
   end
-  
+
   def player_mated?(color)
     @state.each do |row|
       row.each do |piece|
-        if piece && piece.color == color
-          @state.each_with_index do |row, y|
-            row.each_index do |x|
-              piece.set_destination(y, x)
-              return false if piece.legal_move?(self)
-              piece.destination = []
-            end
+        next unless piece && piece.color == color
+
+        @state.each_with_index do |row, y|
+          row.each_index do |x|
+            piece.set_destination(y, x)
+            return false if piece.legal_move?(self)
+
+            piece.destination = []
           end
         end
       end

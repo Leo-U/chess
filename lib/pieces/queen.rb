@@ -7,7 +7,7 @@ class Queen < Piece
 
   def legal_move?(board, check_king_safety = true)
     find_distances
-    condition = 
+    condition =
       no_friendly_at_dest?(board) &&
       queen_path_clear?(board) &&
       (@distance_y == @distance_x || (@distance_y.zero? || @distance_x.zero?))

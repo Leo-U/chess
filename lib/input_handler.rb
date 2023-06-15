@@ -49,25 +49,25 @@ module InputHandler
 
   def input_valid?
     non_pawn? ||
-    pawn_push? ||
-    short_c? ||
-    long_c? ||
-    draw_offered? ||
-    agreement_valid? ||
-    claim_draw? ||
-    resign? ||
-    unambiguous? ||
-    save_game? ||
-    help?
+      pawn_push? ||
+      short_c? ||
+      long_c? ||
+      draw_offered? ||
+      agreement_valid? ||
+      claim_draw? ||
+      resign? ||
+      unambiguous? ||
+      save_game? ||
+      help?
   end
 
   def save_sequence
-    if save_game?
-      puts 'Please enter filename.'
-      filename = gets.chomp
-      save_game(filename)
-      recursive_sequence
-    end
+    return unless save_game?
+
+    puts 'Please enter filename.'
+    filename = gets.chomp
+    save_game(filename)
+    recursive_sequence
   end
 
   def retrieve_dest

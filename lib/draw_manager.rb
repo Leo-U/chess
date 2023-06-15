@@ -14,7 +14,9 @@ module DrawManager
   end
 
   def lone_bishop_or_knight?
-    pieces_for_draw_check.length == 3 && pieces_for_draw_check.any? { |piece| piece.piece_name.downcase =~ /^(kni|bis)$/ }
+    pieces_for_draw_check.length == 3 && pieces_for_draw_check.any? do |piece|
+      piece.piece_name.downcase =~ /^(kni|bis)$/
+    end
   end
 
   def bishops
@@ -22,8 +24,8 @@ module DrawManager
   end
 
   def same_color_bishops?
-    bishops.all? { |bishop| bishop.origin.sum.even?} ||
-    bishops.all? { |bishop| bishop.origin.sum.odd?}
+    bishops.all? { |bishop| bishop.origin.sum.even? } ||
+      bishops.all? { |bishop| bishop.origin.sum.odd? }
   end
 
   def only_same_color_bishops?
@@ -32,8 +34,8 @@ module DrawManager
 
   def insufficient_material?
     only_two_kings? ||
-    lone_bishop_or_knight? ||
-    only_same_color_bishops?
+      lone_bishop_or_knight? ||
+      only_same_color_bishops?
   end
 
   def count_pawns_by_row

@@ -9,10 +9,10 @@ module Display
 
   def init_pieces
     @blank = '   '
-    @red = { kin: '♚', que: '♛', roo: '♜', bis: '♝', kni: '♞', paw: '♟︎' }.transform_values{ |value| @red_fg + value }
-    @black = @red.transform_values{ |value| @black_fg + value[11..-1] }
+    @red = { kin: '♚', que: '♛', roo: '♜', bis: '♝', kni: '♞', paw: '♟︎' }.transform_values { |value| @red_fg + value }
+    @black = @red.transform_values { |value| @black_fg + value[11..-1] }
   end
-  
+
   def init_display
     init_escape_sequences
     init_pieces
@@ -42,8 +42,13 @@ module Display
     @board.reverse.map { |row| row.reverse }
   end
 
-  def print_board(side, board = @board, rank = 9, i = -1, letters = ('  a'..'  h') )
-    (board = board_as_black; rank = 0; i = 1; letters = letters.to_a.reverse) if side == 'black'
+  def print_board(side, board = @board, rank = 9, i = -1, letters = ('  a'..'  h'))
+    if side == 'black'
+      (board = board_as_black
+       rank = 0
+       i = 1
+       letters = letters.to_a.reverse)
+    end
     print ' ', *letters, "\n"
     board.each do |row|
       print rank += i, ' '
@@ -58,5 +63,4 @@ module Display
     fill_board
     print_board(side)
   end
-
 end

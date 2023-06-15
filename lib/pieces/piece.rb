@@ -13,9 +13,7 @@ class Piece
 
   def set_origin(state)
     state.each do |row|
-      if row.include? self
-        @origin = state.index(row), row.index(self)
-      end
+      @origin = state.index(row), row.index(self) if row.include? self
     end
   end
 
@@ -46,7 +44,7 @@ class Piece
     check_test_board = Board.new
     check_test_board.state = Marshal.load(Marshal.dump(board.state))
     check_test_board.state[@origin[0]][@origin[1]] = nil
-    check_test_board.state[dest_y][dest_x] = self.dup
+    check_test_board.state[dest_y][dest_x] = dup
     check_test_board.king_is_safe?(@color)
   end
 end
