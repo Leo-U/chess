@@ -1,0 +1,7 @@
+Piece Moves: Use piece initial and destination square (e.g., 'nf3'). Alternatively, use unambiguous notation (e.g., 'e4f3').
+
+Pawn Moves: Just use file and rank (e.g., 'e4'). For captures, use unambiguous notation (e.g., 'e4d5').
+
+Castling: Use 'o-o' for kingside, 'o-o-o' for queenside.
+
+Saving games: Type 'save'.
