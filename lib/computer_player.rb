@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module ComputerPlayer
   def legal_moves(color)
     legal_moves = []

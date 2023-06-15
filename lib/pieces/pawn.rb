@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'piece'
 
 class Pawn < Piece
@@ -70,9 +72,9 @@ class Pawn < Piece
   end
 
   def promote(board, computer_has_turn, print_color)
-    return unless @origin[0] == 0 || @origin[0] == 7
+    return unless (@origin[0]).zero? || @origin[0] == 7
 
-    color = @origin[0] == 0 ? 'white' : 'black'
+    color = (@origin[0]).zero? ? 'white' : 'black'
     piece_name = prompt_loop(board, computer_has_turn, print_color)
     new_piece = board.create_piece(piece_name, color)
     board.add_piece(new_piece, @origin[0], @origin[1])

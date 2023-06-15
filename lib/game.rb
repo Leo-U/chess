@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'input_handler'
 require_relative 'computer_player'
 require_relative 'board'
@@ -105,13 +107,11 @@ class Game
       puts "#{@turn_color[0].capitalize} offers draw. #{@turn_color[1].capitalize}, please accept or decline."
     end
     get_draw_response
-    if agreement_valid?
-      continue_sequence
-    else
+    unless agreement_valid?
       @draw_offered = false
       @turn_color.reverse!
-      continue_sequence
     end
+    continue_sequence
   end
 
   def set_computer_move

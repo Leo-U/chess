@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'display'
 require_relative 'fen_manager'
 require_relative 'draw_manager'
@@ -101,7 +103,7 @@ class Board
     loop do
       y += y_inc
       x += x_inc
-      break if [y, x] == destination || !y.between?(0, 7) || !x.between?(0, 7)
+      break if destination == [y, x] || !y.between?(0, 7) || !x.between?(0, 7)
 
       path << @state[y][x].nil?
     end
@@ -142,7 +144,7 @@ class Board
   def find_king(color)
     @state.each do |row|
       row.each do |piece|
-        return piece if piece && piece.instance_of?(King) && piece.color == color
+        return piece if piece.instance_of?(King) && piece.color == color
       end
     end
   end
@@ -214,7 +216,7 @@ class Board
         if piece.nil?
           print '--- '
         else
-          print piece.piece_name + ' '
+          print "#{piece.piece_name} "
         end
       end
       puts

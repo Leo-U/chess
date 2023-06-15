@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'game'
 
 class GameInterface
@@ -72,7 +74,7 @@ class GameInterface
       puts ''
     else
       game = get_saved_game
-      game.play_from_saved if game
+      game&.play_from_saved
     end
   end
 

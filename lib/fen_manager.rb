@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module FenManager
   def output_fen
     @state.map do |row|

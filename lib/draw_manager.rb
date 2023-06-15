@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module DrawManager
   def pieces_for_draw_check
     pieces = []

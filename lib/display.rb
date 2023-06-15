@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Display
   def init_escape_sequences
     @dark_bg = "\e[48;5;253m"
@@ -10,7 +12,7 @@ module Display
   def init_pieces
     @blank = '   '
     @red = { kin: '♚', que: '♛', roo: '♜', bis: '♝', kni: '♞', paw: '♟︎' }.transform_values { |value| @red_fg + value }
-    @black = @red.transform_values { |value| @black_fg + value[11..-1] }
+    @black = @red.transform_values { |value| @black_fg + value[11..] }
   end
 
   def init_display
@@ -39,7 +41,7 @@ module Display
   end
 
   def board_as_black
-    @board.reverse.map { |row| row.reverse }
+    @board.reverse.map(&:reverse)
   end
 
   def print_board(side, board = @board, rank = 9, i = -1, letters = ('  a'..'  h'))

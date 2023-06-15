@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module InputHandler
   def draw_offered?
     @input == 'offer draw'
