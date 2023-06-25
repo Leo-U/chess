@@ -22,7 +22,7 @@ class GameInterface
     puts ''
     puts '(1) Human vs. computer'
     puts '(2) Human vs. human'
-    puts '(3) Load game'
+    puts '(3) Load saved game'
   end
 
   def process_choice(choice)
