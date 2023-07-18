@@ -1,3 +1,4 @@
+# feeds move sequences from 600 real games into the chess program and checks that the final board position for each game is identical to the final position of the real game
 require_relative '../lib/game.rb'
 
 describe Game do
