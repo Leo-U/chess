@@ -18,6 +18,6 @@ Live version: https://replit.com/@LeoU1/chess?v=1
 
 ---
 #### How to play
-1. Either follow the live version link above (replit.com can be slow), or in Ubuntu 20.04 or other compatible OS, make a local copy of the directory, and with Ruby installed, navigate to the `lib` directory and enter `ruby lib/main.rb` in the terminal.
+1. Either follow the live version link above (replit.com can be slow), or in Ubuntu 20.04 or other compatible OS, make a local copy of the directory, and with Ruby installed, navigate to the directory and enter `ruby lib/main.rb` in the terminal.
 
 2. To make moves, follow instructions by typing `help` in-game, or by reading `instructions.txt`
