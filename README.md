@@ -6,11 +6,11 @@ I completed it according to these instructions:
 
 https://www.theodinproject.com/lessons/ruby-ruby-final-project
 
-I used a TDD approach for some core game code that determined things like move legality, piece promotion, and castling.
+I used a TDD approach for some core game code that determined things like move legality, piece promotion, and castling, by writing tdd_tests.rb while building the game.
 
-I also wrote a second test script that feeds move sequences from 600 real games into the chess program and checks that the final board position for each game is identical to the final position of the real game.
+I also wrote a second test script, `verify_ending_positions.rb`, that feeds move sequences from 600 real games into the chess program and checks that the final board position for each game is identical to the final position of the real game.
 
-Truth be told, I didn't write the second `verify_ending_positions.rb` rspec file directly -- I did use ChatGPT -- however, the prompt I used shows that I put a good amount of thought into how the script should work. I included the prompt as proof in `gpt-prompt.md`. I *did* write the other rspec script, `tdd_tests.rb`, myself.
+Truth be told, I didn't write `verify_ending_positions.rb` directly -- I did use ChatGPT -- but, the prompt I used shows that I put a good amount of thought into how the script should work. I included the prompt as proof in `gpt-prompt.md`. I *did* write the other rspec script, `tdd_tests.rb`, myself.
 
 `verify_ending_positions.rb` gets the series of moves from a pgn file (portable game notation). The moves were initially in the wrong format, so I had to edit the pgn file by using the pgn-extract tool (https://www.cs.kent.ac.uk/people/staff/djb/pgn-extract/) by David Barnes.
 
